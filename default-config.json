@@ -1,0 +1,19 @@
+{
+  "sidebarCollapsed": true,
+  "favorites": [
+    {
+      "label": "Outlook",
+      "url": "https://outlook.office365.com"
+    },
+    {
+      "label": "SmartIT",
+      "url": "https://smartit.miamidade.gov"
+    }
+  ],
+  "apps": [
+    {
+      "label": "Notepad",
+      "command": "notepad"
+    }
+  ]
+}

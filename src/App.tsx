@@ -42,6 +42,17 @@ export default function App() {
     if (e.key === "Enter") navigate();
   };
 
+  function openFavorite(url: string): void {
+  if (!url.startsWith('http')) {
+    url = 'https://' + url;
+  }
+  const newId = Date.now();
+  const newTab = { id: newId, title: 'Favorite', url };
+  setTabs(prev => [...prev, newTab]);
+  setActiveTabId(newId);
+}
+
+
   return (
     <div className="h-screen w-screen flex bg-neutral-900 text-white font-sans">
       <Sidebar isOpen={sidebarOpen} toggle={() => setSidebarOpen(!sidebarOpen)} />
@@ -76,6 +87,8 @@ export default function App() {
             </div>
           ))}
         </div>
+
+        <FavoritesBar onFavoriteClick={openFavorite} />
 
         {/* Webview Display */}
         <div className="flex-1 relative">

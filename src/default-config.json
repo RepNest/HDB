@@ -1,0 +1,12 @@
+{
+  "sidebarCollapsed": false,
+  "favorites": [
+    { "name": "Google", "url": "https://www.google.com" },
+    { "name": "Outlook", "url": "https://outlook.office365.com" },
+    { "name": "Remedy", "url": "https://remedyportal.internal" }
+  ],
+  "apps": [
+    { "name": "Notepad", "command": "notepad" },
+    { "name": "Calculator", "command": "calc" }
+  ]
+}

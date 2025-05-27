@@ -1,4 +1,4 @@
-const { contextBridge } = require('electron');
+const { contextBridge, ipcRenderer } = require('electron');
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
@@ -24,7 +24,7 @@ try {
       config = JSON.parse(rawDefault);
     }
 
-    config.createdAt = new Date().toISOString(); // Add timestamp
+    config.createdAt = new Date().toISOString();
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
   } else {
     const raw = fs.readFileSync(configPath, 'utf-8');
@@ -34,4 +34,23 @@ try {
   console.warn('Failed to load or create config:', err.message);
 }
 
-contextBridge.exposeInMainWorld('userConfig', config);
+contextBridge.exposeInMainWorld('electronAPI', {
+  launchApp: (cmd) => ipcRenderer.invoke('launch-app', cmd),
+  getConfig: () => {
+    try {
+      return config && typeof config === 'object' ? config : {
+        sidebarCollapsed: false,
+        favorites: [],
+        apps: [],
+        createdAt: new Date().toISOString()
+      };
+    } catch {
+      return {
+        sidebarCollapsed: false,
+        favorites: [],
+        apps: [],
+        createdAt: new Date().toISOString()
+      };
+    }
+  }
+});

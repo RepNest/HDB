@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import FavoritesBar from './components/FavoritesBar';
 import clsx from 'clsx';
@@ -7,7 +7,9 @@ type Tab = { id: number; title: string; url: string };
 
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [tabs, setTabs] = useState<Tab[]>([{ id: 1, title: 'Home', url: 'https://www.google.com' }]);
+  const [tabs, setTabs] = useState<Tab[]>([
+    { id: 1, title: 'Home', url: 'https://www.google.com' },
+  ]);
   const [activeTabId, setActiveTabId] = useState(1);
   const addressInput = useRef<HTMLInputElement>(null);
   const webviews: Record<number, React.RefObject<any>> = {};
@@ -34,24 +36,26 @@ export default function App() {
   const navigate = () => {
     if (!addressInput.current) return;
     let url = addressInput.current.value;
-    if (!url.startsWith("http")) url = "https://" + url;
-    setTabs(tabs.map(tab => tab.id === activeTabId ? { ...tab, url } : tab));
+    if (!url.startsWith('http')) url = 'https://' + url;
+    setTabs(tabs.map(tab => (tab.id === activeTabId ? { ...tab, url } : tab)));
   };
 
   const handleEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") navigate();
+    if (e.key === 'Enter') navigate();
   };
 
   function openFavorite(url: string): void {
-  if (!url.startsWith('http')) {
-    url = 'https://' + url;
+    setTabs(prev =>
+      prev.map(tab =>
+        tab.id === activeTabId ? { ...tab, url } : tab
+      )
+    );
   }
-  const newId = Date.now();
-  const newTab = { id: newId, title: 'Favorite', url };
-  setTabs(prev => [...prev, newTab]);
-  setActiveTabId(newId);
-}
 
+  const goHome = () => {
+    const homepage = 'https://miamidadecounty.sharepoint.com/sites/ITServiceDesk';
+    setTabs(tabs.map(tab => tab.id === activeTabId ? { ...tab, url: homepage } : tab));
+  };
 
   return (
     <div className="h-screen w-screen flex bg-neutral-900 text-white font-sans">
@@ -59,6 +63,7 @@ export default function App() {
       <div className="flex-1 flex flex-col">
         {/* Address Bar */}
         <div className="flex items-center gap-2 bg-gradient-to-r from-purple-800 to-indigo-900 p-2 shadow-md">
+          <button onClick={goHome} className="px-2" title="Home">🏠</button>
           <button onClick={() => webviews[activeTabId]?.current?.goBack()} className="px-2">⟨</button>
           <button onClick={() => webviews[activeTabId]?.current?.goForward()} className="px-2">⟩</button>
           <button onClick={() => webviews[activeTabId]?.current?.reload()} className="px-2">⟳</button>
@@ -83,7 +88,15 @@ export default function App() {
               )}
             >
               {tab.title}
-              <span className="ml-2 text-red-300 hover:text-red-500" onClick={(e) => { e.stopPropagation(); handleCloseTab(tab.id); }}>×</span>
+              <span
+                className="ml-2 text-red-300 hover:text-red-500"
+                onClick={e => {
+                  e.stopPropagation();
+                  handleCloseTab(tab.id);
+                }}
+              >
+                ×
+              </span>
             </div>
           ))}
         </div>

@@ -1,12 +1,11 @@
 {
   "sidebarCollapsed": false,
   "favorites": [
-    { "name": "Google", "url": "https://www.google.com" },
-    { "name": "Outlook", "url": "https://outlook.office365.com" },
-    { "name": "Remedy", "url": "https://remedyportal.internal" }
+    { "name": "Outlook", "url": "https://outlook.office365.com", "icon": "📧" },
+    { "name": "SmartIT", "url": "https://smartit.miamidade.gov", "icon": "🛠️" }
   ],
   "apps": [
-    { "name": "Notepad", "command": "notepad" },
-    { "name": "Calculator", "command": "calc" }
+    { "name": "Notepad", "command": "notepad", "icon": "📝" },
+    { "name": "Calculator", "command": "calc", "icon": "🧮" }
   ]
 }

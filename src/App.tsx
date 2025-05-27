@@ -3,12 +3,12 @@ import Sidebar from './components/Sidebar';
 import FavoritesBar from './components/FavoritesBar';
 import clsx from 'clsx';
 
-type Tab = { id: number; title: string; url: string };
+type Tab = { id: number; title: string; url: string; favicon?: string };
 
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [tabs, setTabs] = useState<Tab[]>([
-    { id: 1, title: 'Home', url: 'https://www.google.com' },
+    { id: 1, title: 'ITD Intra', url: 'https://miamidadecounty.sharepoint.com/sites/ITD-Intra' },
   ]);
   const [activeTabId, setActiveTabId] = useState(1);
   const addressInput = useRef<HTMLInputElement>(null);
@@ -37,7 +37,7 @@ export default function App() {
     if (!addressInput.current) return;
     let url = addressInput.current.value;
     if (!url.startsWith('http')) url = 'https://' + url;
-    setTabs(tabs.map(tab => (tab.id === activeTabId ? { ...tab, url } : tab)));
+    setTabs(tabs.map(tab => tab.id === activeTabId ? { ...tab, url } : tab));
   };
 
   const handleEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -52,10 +52,30 @@ export default function App() {
     );
   }
 
-  const goHome = () => {
-    const homepage = 'https://miamidadecounty.sharepoint.com/sites/ITServiceDesk';
-    setTabs(tabs.map(tab => tab.id === activeTabId ? { ...tab, url: homepage } : tab));
-  };
+  // Favicon fetcher
+  useEffect(() => {
+    const webview = webviews[activeTabId]?.current;
+    if (webview) {
+      const handleLoad = () => {
+        webview.executeJavaScript(`
+          (() => {
+            const icon = document.querySelector("link[rel*='icon']");
+            return icon?.href || '';
+          })();
+        `).then((faviconUrl: string) => {
+          if (faviconUrl) {
+            setTabs(prev =>
+              prev.map(tab =>
+                tab.id === activeTabId ? { ...tab, favicon: faviconUrl } : tab
+              )
+            );
+          }
+        });
+      };
+      webview.addEventListener('did-stop-loading', handleLoad);
+      return () => webview.removeEventListener('did-stop-loading', handleLoad);
+    }
+  }, [activeTabId, tabs]);
 
   return (
     <div className="h-screen w-screen flex bg-neutral-900 text-white font-sans">
@@ -63,7 +83,7 @@ export default function App() {
       <div className="flex-1 flex flex-col">
         {/* Address Bar */}
         <div className="flex items-center gap-2 bg-gradient-to-r from-purple-800 to-indigo-900 p-2 shadow-md">
-          <button onClick={goHome} className="px-2" title="Home">🏠</button>
+          <button onClick={() => webviews[activeTabId]?.current?.loadURL('https://miamidadecounty.sharepoint.com/sites/ITServiceDesk')} className="px-2">🏠</button>
           <button onClick={() => webviews[activeTabId]?.current?.goBack()} className="px-2">⟨</button>
           <button onClick={() => webviews[activeTabId]?.current?.goForward()} className="px-2">⟩</button>
           <button onClick={() => webviews[activeTabId]?.current?.reload()} className="px-2">⟳</button>
@@ -83,14 +103,15 @@ export default function App() {
               key={tab.id}
               onClick={() => setActiveTabId(tab.id)}
               className={clsx(
-                'px-4 py-1 rounded-full text-sm cursor-pointer font-medium transition-all',
+                'px-4 py-1 rounded-full text-sm cursor-pointer font-medium transition-all flex items-center gap-2',
                 tab.id === activeTabId ? 'bg-pink-600' : 'bg-gray-700 hover:bg-purple-600'
               )}
             >
+              {tab.favicon && <img src={tab.favicon} alt="favicon" className="w-4 h-4" />}
               {tab.title}
               <span
                 className="ml-2 text-red-300 hover:text-red-500"
-                onClick={e => {
+                onClick={(e) => {
                   e.stopPropagation();
                   handleCloseTab(tab.id);
                 }}

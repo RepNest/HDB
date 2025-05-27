@@ -1,5 +1,17 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import clsx from 'clsx';
+
+interface AppEntry {
+  name: string;
+  command: string;
+  icon?: string;
+}
+
+interface WebEntry {
+  name: string;
+  url: string;
+  icon?: string;
+}
 
 interface SidebarProps {
   isOpen: boolean;
@@ -7,9 +19,17 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen, toggle }: SidebarProps) {
-  const config = window.electronAPI?.getConfig?.();
-  const apps = config?.apps || [];
-  const favorites = config?.favorites || [];
+  const [apps, setApps] = useState<AppEntry[]>([]);
+  const [webShortcuts, setWebShortcuts] = useState<WebEntry[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  useEffect(() => {
+    const config = window.electronAPI?.getConfig?.();
+    if (config) {
+      setApps(config.apps || []);
+      setWebShortcuts(config.favorites || []);
+    }
+  }, []);
 
   const launchApp = (cmd: string) => {
     window.electronAPI?.launchApp(cmd);
@@ -19,46 +39,49 @@ export default function Sidebar({ isOpen, toggle }: SidebarProps) {
     window.open(url);
   };
 
-  return (
-    <div
-      className={clsx(
-        'transition-all duration-300 bg-black h-full flex flex-col py-4 shadow-lg text-white',
-        isOpen ? 'w-64 px-4' : 'w-16 items-center'
-      )}
-    >
-      <button onClick={toggle} className="mb-6 text-white hover:text-purple-400">
-        ☰
-      </button>
+  const filteredApps = apps.filter(app => app.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredWeb = webShortcuts.filter(web => web.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
-      <div className="text-sm text-gray-400 mb-2">{isOpen ? 'Apps' : ''}</div>
-      {apps.map((app, idx) => (
+  return (
+    <div className={clsx(
+      'transition-all duration-300 bg-black h-full flex flex-col py-4 shadow-lg',
+      isOpen ? 'w-64 px-3' : 'w-16 items-center'
+    )}>
+      <button onClick={toggle} className="mb-4 text-white hover:text-purple-400 w-full text-left">{isOpen ? '☰ Close' : '☰'}</button>
+
+      {isOpen && (
+        <input
+          type="text"
+          placeholder="Search..."
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          className="mb-4 px-2 py-1 rounded bg-gray-800 text-white w-full"
+        />
+      )}
+
+      <div className={clsx('text-xs text-gray-400 mb-2', isOpen ? 'text-left' : 'text-center')}>Apps</div>
+      {filteredApps.map((app, idx) => (
         <button
           key={idx}
           onClick={() => launchApp(app.command)}
-          className={clsx(
-            'my-1 flex items-center gap-2 bg-gray-800 hover:bg-purple-600 transition-all rounded-xl py-2 px-3 w-full',
-            isOpen ? 'justify-start' : 'justify-center w-10 h-10'
-          )}
+          className="w-full my-1 flex items-center space-x-2 text-white hover:bg-purple-600 rounded px-2 py-1"
           title={app.name}
         >
-          <span className="text-lg">{app.name[0]}</span>
-          {isOpen && <span className="text-sm font-medium">{app.name}</span>}
+          <span>{app.icon || '🗂️'}</span>
+          {isOpen && <span>{app.name}</span>}
         </button>
       ))}
 
-      <div className="text-sm text-gray-400 mt-6 mb-2">{isOpen ? 'Web' : ''}</div>
-      {favorites.map((fav, idx) => (
+      <div className={clsx('text-xs text-gray-400 mt-4 mb-2', isOpen ? 'text-left' : 'text-center')}>Web</div>
+      {filteredWeb.map((web, idx) => (
         <button
           key={idx}
-          onClick={() => openUrl(fav.url)}
-          className={clsx(
-            'my-1 flex items-center gap-2 bg-gray-800 hover:bg-indigo-600 transition-all rounded-xl py-2 px-3 w-full',
-            isOpen ? 'justify-start' : 'justify-center w-10 h-10'
-          )}
-          title={fav.name}
+          onClick={() => openUrl(web.url)}
+          className="w-full my-1 flex items-center space-x-2 text-white hover:bg-indigo-600 rounded px-2 py-1"
+          title={web.name}
         >
-          <span className="text-lg">{fav.name[0]}</span>
-          {isOpen && <span className="text-sm font-medium">{fav.name}</span>}
+          <span>{web.icon || '🌐'}</span>
+          {isOpen && <span>{web.name}</span>}
         </button>
       ))}
     </div>

@@ -52,7 +52,7 @@ export default function App() {
     );
   }
 
-  // Favicon fetcher
+  // Fetch <title> and favicon when tab loads
   useEffect(() => {
     const webview = webviews[activeTabId]?.current;
     if (webview) {
@@ -60,16 +60,21 @@ export default function App() {
         webview.executeJavaScript(`
           (() => {
             const icon = document.querySelector("link[rel*='icon']");
-            return icon?.href || '';
+            const title = document.title || '';
+            return { favicon: icon?.href || '', title };
           })();
-        `).then((faviconUrl: string) => {
-          if (faviconUrl) {
-            setTabs(prev =>
-              prev.map(tab =>
-                tab.id === activeTabId ? { ...tab, favicon: faviconUrl } : tab
-              )
-            );
-          }
+        `).then((result: { favicon: string; title: string }) => {
+          setTabs(prev =>
+            prev.map(tab =>
+              tab.id === activeTabId
+                ? {
+                    ...tab,
+                    favicon: result.favicon || tab.favicon,
+                    title: result.title || tab.title,
+                  }
+                : tab
+            )
+          );
         });
       };
       webview.addEventListener('did-stop-loading', handleLoad);
@@ -108,7 +113,9 @@ export default function App() {
               )}
             >
               {tab.favicon && <img src={tab.favicon} alt="favicon" className="w-4 h-4" />}
-              {tab.title}
+              <span title={tab.title}>
+  {tab.title.length > 25 ? tab.title.slice(0, 25) + '…' : tab.title}
+</span>
               <span
                 className="ml-2 text-red-300 hover:text-red-500"
                 onClick={(e) => {

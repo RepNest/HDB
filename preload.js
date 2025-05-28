@@ -36,21 +36,6 @@ try {
 
 contextBridge.exposeInMainWorld('electronAPI', {
   launchApp: (cmd) => ipcRenderer.invoke('launch-app', cmd),
-  getConfig: () => {
-    try {
-      return config && typeof config === 'object' ? config : {
-        sidebarCollapsed: false,
-        favorites: [],
-        apps: [],
-        createdAt: new Date().toISOString()
-      };
-    } catch {
-      return {
-        sidebarCollapsed: false,
-        favorites: [],
-        apps: [],
-        createdAt: new Date().toISOString()
-      };
-    }
-  }
+  getConfig: () => config,
+  showContextMenu: () => ipcRenderer.invoke('show-context-menu')
 });

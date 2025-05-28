@@ -2,9 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import FavoritesBar from './components/FavoritesBar';
 import Tabs from './components/Tabs';
-import clsx from 'clsx';
 
-type Tab = { id: number; title: string; url: string; favicon?: string };
+type Tab = { 
+  id: number; 
+  title: string; 
+  url: string; 
+  favicon?: string 
+};
 
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -21,6 +25,13 @@ export default function App() {
 
   const activeTab = tabs.find(t => t.id === activeTabId);
 
+  // Sync address bar to current tab URL
+  useEffect(() => {
+    if (addressInput.current && activeTab?.url) {
+      addressInput.current.value = activeTab.url;
+    }
+  }, [activeTabId]);
+
   const handleNewTab = () => {
     const newId = Date.now();
     const newTab = { id: newId, title: 'New Tab', url: 'https://www.google.com' };
@@ -36,8 +47,12 @@ export default function App() {
 
   const navigate = () => {
     if (!addressInput.current) return;
-    let url = addressInput.current.value;
-    if (!url.startsWith("http")) url = "https://" + url;
+    let url = addressInput.current.value.trim();
+
+    const isLikelyUrl = url.includes('.') && !url.includes(' ');
+    if (!url.startsWith('http') && isLikelyUrl) url = 'https://' + url;
+    if (!isLikelyUrl) url = `https://www.google.com/search?q=${encodeURIComponent(url)}`;
+
     setTabs(tabs.map(tab => tab.id === activeTabId ? { ...tab, url } : tab));
   };
 
@@ -52,11 +67,10 @@ export default function App() {
     setActiveTabId(newId);
   }
 
-  // Update tab title and favicon dynamically
+  // Update tab title + favicon
   useEffect(() => {
     const interval = setInterval(() => {
-      const tabId = activeTabId;
-      const view = webviews[tabId]?.current;
+      const view = webviews[activeTabId]?.current;
       if (!view) return;
 
       view.executeJavaScript(`
@@ -66,20 +80,45 @@ export default function App() {
             const link = document.querySelector("link[rel~='icon']");
             return link ? link.href : null;
           })()
-        })
+        });
       `, true).then((result: any) => {
         setTabs(prev => prev.map(tab =>
-          tab.id === tabId ? { ...tab, title: result.title || tab.title, favicon: result.favicon || tab.favicon } : tab
+          tab.id === activeTabId
+            ? {
+              ...tab,
+              title: result.title || tab.title,
+              favicon: result.favicon || tab.favicon
+            }
+            : tab
         ));
       });
     }, 2000);
-
     return () => clearInterval(interval);
   }, [activeTabId]);
 
+  // // Inject right-click logic into WebView
+  // useEffect(() => {
+  //   const view = webviews[activeTabId]?.current;
+  //   if (!view) return;
+
+  //   const inject = () => {
+  //     view.executeJavaScript(`
+  //       window.addEventListener('contextmenu', (e) => {
+  //         e.preventDefault();
+  //         window.electronAPI?.showContextMenu?.();
+  //       });
+  //     `).catch(console.error);
+  //   };
+
+  //   view.addEventListener('dom-ready', inject);
+  //   return () => view.removeEventListener('dom-ready', inject);
+  // }, [activeTabId]);
+
   const goHome = () => {
     const homepage = 'https://miamidadecounty.sharepoint.com/sites/ITServiceDesk';
-    setTabs(tabs.map(tab => tab.id === activeTabId ? { ...tab, url: homepage } : tab));
+    setTabs(tabs.map(tab =>
+      tab.id === activeTabId ? { ...tab, url: homepage } : tab
+    ));
   };
 
   return (

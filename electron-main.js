@@ -1,10 +1,9 @@
-
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, session } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const { exec } = require('child_process');
 
-// ---- Configuration Bootstrapping ----
 const CONFIG_DIR = path.join(os.homedir(), 'AppData', 'Roaming', 'helpdeskbrowser', 'configs');
 const USERNAME = os.userInfo().username.toLowerCase();
 const USER_CONFIG_PATH = path.join(CONFIG_DIR, `${USERNAME}.json`);
@@ -24,13 +23,10 @@ function initializeUserConfig() {
     fs.writeFileSync(USER_CONFIG_PATH, JSON.stringify(userConfig, null, 2));
   } else {
     userConfig = JSON.parse(fs.readFileSync(USER_CONFIG_PATH, 'utf-8'));
-
     let changed = false;
 
     ['apps', 'favorites', 'sidebarCollapsed'].forEach(key => {
-      const isMissing = !(key in userConfig);
-      const isEmptyArray = Array.isArray(userConfig[key]) && userConfig[key].length === 0;
-      if (isMissing || isEmptyArray) {
+      if (!(key in userConfig)) {
         userConfig[key] = defaultConfig[key];
         changed = true;
       }
@@ -47,11 +43,7 @@ function initializeUserConfig() {
   }
 }
 
-// ---- Electron Auth Flags for SSO ----
-app.commandLine.appendSwitch('auth-server-whitelist', '*');
-app.commandLine.appendSwitch('auth-negotiate-delegate-whitelist', '*');
-
-// ---- Create Electron Window ----
+// Create the main browser window
 function createWindow() {
   const win = new BrowserWindow({
     width: 1400,
@@ -68,24 +60,58 @@ function createWindow() {
 
   win.loadFile('dist/index.html');
 }
+  
+// Handle context menu in webviews
+app.on('web-contents-created', (event, contents) => {
+  contents.on('context-menu', (e, params) => {
+    const menu = Menu.buildFromTemplate([
+      { role: 'copy', enabled: params.editFlags.canCopy },
+      { role: 'paste', enabled: params.editFlags.canPaste },
+      { role: 'cut', enabled: params.editFlags.canCut },
+      { type: 'separator' },
+      { role: 'selectAll' },
+      { type: 'separator' },
+      { label: 'Reload', click: () => contents.reload() }
+    ]);
 
-// ---- IPC Handler for Frontend Access ----
-ipcMain.handle('get-user-config', async () => userConfig);
-ipcMain.handle('launch-app', async (_, cmd) => {
-  const exec = require('child_process').exec;
-  exec(cmd);
-});
-
-// ---- App Lifecycle ----
-app.whenReady().then(() => {
-  initializeUserConfig();
-  createWindow();
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    menu.popup({ window: BrowserWindow.fromWebContents(contents) });
   });
-});
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
-});
+   // Support for popups
+    contents.setWindowOpenHandler(({ url }) => {
+      const popup = new BrowserWindow({
+        width: 800,
+        height: 600,
+        parent: BrowserWindow.fromWebContents(contents),
+        webPreferences: {
+          webviewTag: true,
+          contextIsolation: true,
+          preload: path.join(__dirname, 'preload.js'),
+          sandbox: false
+        }
+      });
+      popup.loadURL(url);
+      return { action: 'deny' }; // Prevent default, handled manually
+    });
+  });
+  
+  // IPC handlers
+  ipcMain.handle('get-user-config', async () => userConfig);
+  ipcMain.handle('launch-app', async (_, cmd) => {
+    exec(cmd);
+  });
+  
+  // App lifecycle
+  app.whenReady().then(() => {
+    initializeUserConfig();
+    createWindow();
+  
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
+  });
+  
+  app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') app.quit();
+  });
+  

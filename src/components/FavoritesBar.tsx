@@ -28,4 +28,4 @@ export default function FavoritesBar({ onFavoriteClick }: FavoritesBarProps) {
       ))}
     </div>
   );
-}
+} 

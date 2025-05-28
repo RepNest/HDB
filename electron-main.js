@@ -1,3 +1,4 @@
+
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
@@ -26,7 +27,6 @@ function initializeUserConfig() {
 
     let changed = false;
 
-    // Patch missing keys
     ['apps', 'favorites', 'sidebarCollapsed'].forEach(key => {
       const isMissing = !(key in userConfig);
       const isEmptyArray = Array.isArray(userConfig[key]) && userConfig[key].length === 0;
@@ -46,6 +46,10 @@ function initializeUserConfig() {
     }
   }
 }
+
+// ---- Electron Auth Flags for SSO ----
+app.commandLine.appendSwitch('auth-server-whitelist', '*');
+app.commandLine.appendSwitch('auth-negotiate-delegate-whitelist', '*');
 
 // ---- Create Electron Window ----
 function createWindow() {

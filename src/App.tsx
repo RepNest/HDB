@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import FavoritesBar from './components/FavoritesBar';
+import Tabs from './components/Tabs';
 import clsx from 'clsx';
 
-type Tab = { id: number; title: string; url: string };
+type Tab = { id: number; title: string; url: string; favicon?: string };
 
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -51,6 +52,31 @@ export default function App() {
     setActiveTabId(newId);
   }
 
+  // Update tab title and favicon dynamically
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const tabId = activeTabId;
+      const view = webviews[tabId]?.current;
+      if (!view) return;
+
+      view.executeJavaScript(`
+        Promise.resolve({
+          title: document.title,
+          favicon: (() => {
+            const link = document.querySelector("link[rel~='icon']");
+            return link ? link.href : null;
+          })()
+        })
+      `, true).then((result: any) => {
+        setTabs(prev => prev.map(tab =>
+          tab.id === tabId ? { ...tab, title: result.title || tab.title, favicon: result.favicon || tab.favicon } : tab
+        ));
+      });
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [activeTabId]);
+
   return (
     <div className="h-screen w-screen flex bg-neutral-900 text-white font-sans">
       <Sidebar isOpen={sidebarOpen} toggle={() => setSidebarOpen(!sidebarOpen)} />
@@ -70,22 +96,12 @@ export default function App() {
         </div>
 
         {/* Tabs */}
-        <div className="flex space-x-2 px-3 py-2 bg-black border-b border-gray-800 overflow-x-auto">
-          {tabs.map(tab => (
-            <div
-              key={tab.id}
-              onClick={() => setActiveTabId(tab.id)}
-              className={clsx(
-                'px-4 py-1 rounded-full text-sm cursor-pointer font-medium transition-all',
-                tab.id === activeTabId ? 'bg-pink-600' : 'bg-gray-700 hover:bg-purple-600'
-              )}
-              title={tab.title}
-            >
-              {tab.title.length > 20 ? tab.title.substring(0, 20) + '…' : tab.title}
-              <span className="ml-2 text-red-300 hover:text-red-500" onClick={(e) => { e.stopPropagation(); handleCloseTab(tab.id); }}>×</span>
-            </div>
-          ))}
-        </div>
+        <Tabs
+          tabs={tabs}
+          activeTabId={activeTabId}
+          setActiveTabId={setActiveTabId}
+          handleCloseTab={handleCloseTab}
+        />
 
         <FavoritesBar onFavoriteClick={openFavorite} />
 
@@ -97,13 +113,13 @@ export default function App() {
               ref={webviews[tab.id]}
               src={tab.url}
               style={{
-  width: '100%',
-  height: '100%',
-  position: tab.id === activeTabId ? 'relative' : 'absolute',
-  visibility: tab.id === activeTabId ? 'visible' : 'hidden',
-  pointerEvents: tab.id === activeTabId ? 'auto' : 'none',
-  zIndex: tab.id === activeTabId ? 1 : 0
-}}
+                width: '100%',
+                height: '100%',
+                visibility: tab.id === activeTabId ? 'visible' : 'hidden',
+                position: tab.id === activeTabId ? 'relative' : 'absolute',
+                top: 0,
+                left: 0
+              }}
             />
           ))}
         </div>

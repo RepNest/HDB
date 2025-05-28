@@ -1,7 +1,21 @@
 import React from 'react';
 import clsx from 'clsx';
 
-export default function Tabs({ tabs, activeTabId, setActiveTabId, handleCloseTab }) {
+interface Tab {
+  id: number;
+  title: string;
+  url: string;
+  favicon?: string;
+}
+
+interface TabsProps {
+  tabs: Tab[];
+  activeTabId: number;
+  setActiveTabId: (id: number) => void;
+  handleCloseTab: (id: number) => void;
+}
+
+export default function Tabs({ tabs, activeTabId, setActiveTabId, handleCloseTab }: TabsProps) {
   return (
     <div className="flex space-x-2 px-3 py-2 bg-black border-b border-gray-800 overflow-x-auto">
       {tabs.map(tab => (

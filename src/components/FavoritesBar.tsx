@@ -1,34 +1,23 @@
+
 import React, { useEffect, useState } from 'react';
 
 interface FavoritesBarProps {
   onFavoriteClick: (url: string) => void;
 }
 
-interface Favorite {
-  name: string;
-  url: string;
-}
-
 export default function FavoritesBar({ onFavoriteClick }: FavoritesBarProps) {
-  const [favorites, setFavorites] = useState<Favorite[]>([]);
+  const [favorites, setFavorites] = useState<{ name: string; url: string }[]>([]);
 
   useEffect(() => {
-    try {
-      const config = window.electronAPI?.getConfig?.();
-      if (config && Array.isArray(config.favorites)) {
-        setFavorites(config.favorites);
-      } else {
-        setFavorites([]);
-      }
-    } catch (err) {
-      console.error("FavoritesBar config load failed:", err);
-      setFavorites([]);
+    if (window.electronAPI?.getConfig) {
+      const config = window.electronAPI.getConfig();
+      setFavorites(config.favorites || []);
     }
   }, []);
 
   return (
     <div className="flex bg-neutral-800 px-2 py-1 border-b border-gray-700 overflow-x-auto">
-      {(favorites ?? []).map((fav, idx) => (
+      {(favorites || []).map((fav, idx) => (
         <button
           key={idx}
           onClick={() => onFavoriteClick(fav.url)}

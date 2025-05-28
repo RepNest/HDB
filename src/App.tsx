@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import FavoritesBar from './components/FavoritesBar';
 import clsx from 'clsx';
@@ -8,7 +8,7 @@ type Tab = { id: number; title: string; url: string; favicon?: string };
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [tabs, setTabs] = useState<Tab[]>([
-    { id: 1, title: 'ITD Intra', url: 'https://miamidadecounty.sharepoint.com/sites/ITD-Intra' },
+    { id: 1, title: 'ITD Intra', url: 'https://miamidadecounty.sharepoint.com/sites/ITD-Intra' }
   ]);
   const [activeTabId, setActiveTabId] = useState(1);
   const addressInput = useRef<HTMLInputElement>(null);
@@ -36,62 +36,31 @@ export default function App() {
   const navigate = () => {
     if (!addressInput.current) return;
     let url = addressInput.current.value;
-    if (!url.startsWith('http')) url = 'https://' + url;
+    if (!url.startsWith("http")) url = "https://" + url;
     setTabs(tabs.map(tab => tab.id === activeTabId ? { ...tab, url } : tab));
   };
 
-  const handleEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') navigate();
+  const navigateTo = (url: string) => {
+    const newId = Date.now();
+    const newTab = { id: newId, title: 'New Tab', url };
+    setTabs(prev => [...prev, newTab]);
+    setActiveTabId(newId);
   };
 
-  function openFavorite(url: string): void {
-    setTabs(prev =>
-      prev.map(tab =>
-        tab.id === activeTabId ? { ...tab, url } : tab
-      )
-    );
-  }
-
-  // Fetch <title> and favicon when tab loads
-  useEffect(() => {
-    const webview = webviews[activeTabId]?.current;
-    if (webview) {
-      const handleLoad = () => {
-        webview.executeJavaScript(`
-          (() => {
-            const icon = document.querySelector("link[rel*='icon']");
-            const title = document.title || '';
-            return { favicon: icon?.href || '', title };
-          })();
-        `).then((result: { favicon: string; title: string }) => {
-          setTabs(prev =>
-            prev.map(tab =>
-              tab.id === activeTabId
-                ? {
-                    ...tab,
-                    favicon: result.favicon || tab.favicon,
-                    title: result.title || tab.title,
-                  }
-                : tab
-            )
-          );
-        });
-      };
-      webview.addEventListener('did-stop-loading', handleLoad);
-      return () => webview.removeEventListener('did-stop-loading', handleLoad);
-    }
-  }, [activeTabId, tabs]);
+  const handleEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") navigate();
+  };
 
   return (
     <div className="h-screen w-screen flex bg-neutral-900 text-white font-sans">
-      <Sidebar isOpen={sidebarOpen} toggle={() => setSidebarOpen(!sidebarOpen)} />
+      <Sidebar isOpen={sidebarOpen} toggle={() => setSidebarOpen(!sidebarOpen)} onShortcutClick={navigateTo} />
       <div className="flex-1 flex flex-col">
         {/* Address Bar */}
         <div className="flex items-center gap-2 bg-gradient-to-r from-purple-800 to-indigo-900 p-2 shadow-md">
-          <button onClick={() => webviews[activeTabId]?.current?.loadURL('https://miamidadecounty.sharepoint.com/sites/ITServiceDesk')} className="px-2">🏠</button>
           <button onClick={() => webviews[activeTabId]?.current?.goBack()} className="px-2">⟨</button>
           <button onClick={() => webviews[activeTabId]?.current?.goForward()} className="px-2">⟩</button>
           <button onClick={() => webviews[activeTabId]?.current?.reload()} className="px-2">⟳</button>
+          <button onClick={() => navigateTo('https://miamidadecounty.sharepoint.com/sites/ITServiceDesk')} className="px-2">🏠</button>
           <input
             ref={addressInput}
             defaultValue={activeTab?.url}
@@ -108,28 +77,17 @@ export default function App() {
               key={tab.id}
               onClick={() => setActiveTabId(tab.id)}
               className={clsx(
-                'px-4 py-1 rounded-full text-sm cursor-pointer font-medium transition-all flex items-center gap-2',
+                'px-4 py-1 rounded-full text-sm cursor-pointer font-medium transition-all',
                 tab.id === activeTabId ? 'bg-pink-600' : 'bg-gray-700 hover:bg-purple-600'
               )}
             >
-              {tab.favicon && <img src={tab.favicon} alt="favicon" className="w-4 h-4" />}
-              <span title={tab.title}>
-  {tab.title.length > 25 ? tab.title.slice(0, 25) + '…' : tab.title}
-</span>
-              <span
-                className="ml-2 text-red-300 hover:text-red-500"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleCloseTab(tab.id);
-                }}
-              >
-                ×
-              </span>
+              {tab.title.length > 20 ? tab.title.slice(0, 20) + "..." : tab.title}
+              <span className="ml-2 text-red-300 hover:text-red-500" onClick={(e) => { e.stopPropagation(); handleCloseTab(tab.id); }}>×</span>
             </div>
           ))}
         </div>
 
-        <FavoritesBar onFavoriteClick={openFavorite} />
+        <FavoritesBar onFavoriteClick={navigateTo} />
 
         {/* Webview Display */}
         <div className="flex-1 relative">

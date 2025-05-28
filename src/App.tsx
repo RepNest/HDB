@@ -77,12 +77,18 @@ export default function App() {
     return () => clearInterval(interval);
   }, [activeTabId]);
 
+  const goHome = () => {
+    const homepage = 'https://miamidadecounty.sharepoint.com/sites/ITServiceDesk';
+    setTabs(tabs.map(tab => tab.id === activeTabId ? { ...tab, url: homepage } : tab));
+  };
+
   return (
     <div className="h-screen w-screen flex bg-neutral-900 text-white font-sans">
       <Sidebar isOpen={sidebarOpen} toggle={() => setSidebarOpen(!sidebarOpen)} />
       <div className="flex-1 flex flex-col">
         {/* Address Bar */}
         <div className="flex items-center gap-2 bg-gradient-to-r from-purple-800 to-indigo-900 p-2 shadow-md">
+          <button onClick={goHome} className="px-2" title="Home">🏠</button>
           <button onClick={() => webviews[activeTabId]?.current?.goBack()} className="px-2">⟨</button>
           <button onClick={() => webviews[activeTabId]?.current?.goForward()} className="px-2">⟩</button>
           <button onClick={() => webviews[activeTabId]?.current?.reload()} className="px-2">⟳</button>

@@ -1,9 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import FavoritesBar from './components/FavoritesBar';
 import clsx from 'clsx';
 
-type Tab = { id: number; title: string; url: string; favicon?: string };
+type Tab = { id: number; title: string; url: string };
 
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -40,27 +40,26 @@ export default function App() {
     setTabs(tabs.map(tab => tab.id === activeTabId ? { ...tab, url } : tab));
   };
 
-  const navigateTo = (url: string) => {
-    const newId = Date.now();
-    const newTab = { id: newId, title: 'New Tab', url };
-    setTabs(prev => [...prev, newTab]);
-    setActiveTabId(newId);
-  };
-
   const handleEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") navigate();
   };
 
+  function openFavorite(url: string): void {
+    const newId = Date.now();
+    const newTab = { id: newId, title: 'New Tab', url };
+    setTabs(prev => [...prev, newTab]);
+    setActiveTabId(newId);
+  }
+
   return (
     <div className="h-screen w-screen flex bg-neutral-900 text-white font-sans">
-      <Sidebar isOpen={sidebarOpen} toggle={() => setSidebarOpen(!sidebarOpen)} onShortcutClick={navigateTo} />
+      <Sidebar isOpen={sidebarOpen} toggle={() => setSidebarOpen(!sidebarOpen)} />
       <div className="flex-1 flex flex-col">
         {/* Address Bar */}
         <div className="flex items-center gap-2 bg-gradient-to-r from-purple-800 to-indigo-900 p-2 shadow-md">
           <button onClick={() => webviews[activeTabId]?.current?.goBack()} className="px-2">⟨</button>
           <button onClick={() => webviews[activeTabId]?.current?.goForward()} className="px-2">⟩</button>
           <button onClick={() => webviews[activeTabId]?.current?.reload()} className="px-2">⟳</button>
-          <button onClick={() => navigateTo('https://miamidadecounty.sharepoint.com/sites/ITServiceDesk')} className="px-2">🏠</button>
           <input
             ref={addressInput}
             defaultValue={activeTab?.url}
@@ -80,27 +79,33 @@ export default function App() {
                 'px-4 py-1 rounded-full text-sm cursor-pointer font-medium transition-all',
                 tab.id === activeTabId ? 'bg-pink-600' : 'bg-gray-700 hover:bg-purple-600'
               )}
+              title={tab.title}
             >
-              {tab.title.length > 20 ? tab.title.slice(0, 20) + "..." : tab.title}
+              {tab.title.length > 20 ? tab.title.substring(0, 20) + '…' : tab.title}
               <span className="ml-2 text-red-300 hover:text-red-500" onClick={(e) => { e.stopPropagation(); handleCloseTab(tab.id); }}>×</span>
             </div>
           ))}
         </div>
 
-        <FavoritesBar onFavoriteClick={navigateTo} />
+        <FavoritesBar onFavoriteClick={openFavorite} />
 
         {/* Webview Display */}
         <div className="flex-1 relative">
-          {tabs.map(tab =>
-            tab.id === activeTabId ? (
-              <webview
-                key={tab.id}
-                ref={webviews[tab.id]}
-                src={tab.url}
-                style={{ width: '100%', height: '100%' }}
-              />
-            ) : null
-          )}
+          {tabs.map(tab => (
+            <webview
+              key={tab.id}
+              ref={webviews[tab.id]}
+              src={tab.url}
+              style={{
+  width: '100%',
+  height: '100%',
+  position: tab.id === activeTabId ? 'relative' : 'absolute',
+  visibility: tab.id === activeTabId ? 'visible' : 'hidden',
+  pointerEvents: tab.id === activeTabId ? 'auto' : 'none',
+  zIndex: tab.id === activeTabId ? 1 : 0
+}}
+            />
+          ))}
         </div>
       </div>
     </div>

@@ -78,13 +78,25 @@ export default function App() {
     setActiveTabId(newId);
   };
 
-  const saveFavorite = () => {
-    if (activeTab?.url && activeTab.title) {
-      const newFav = { name: activeTab.title, url: activeTab.url };
-      window.electronAPI?.saveFavorite?.(newFav);
-      setFavorites(prev => [...prev, newFav]);
-    }
-  };
+const saveFavorite = async () => {
+  if (!activeTab?.url || !activeTab?.title) return;
+
+  const config = await window.electronAPI.getConfig?.();
+  const currentFavorites = config?.favorites || [];
+
+  const newFavorite = { name: activeTab.title, url: activeTab.url };
+
+  // Avoid duplicates
+  const exists = currentFavorites.some(f => f.url === newFavorite.url);
+  if (exists) return;
+
+  const updated = [...currentFavorites, newFavorite];
+
+  setFavorites(updated); // UI
+  await window.electronAPI.saveFavorites?.(updated); // Save full array
+};
+
+
 
   useEffect(() => {
     const interval = setInterval(() => {

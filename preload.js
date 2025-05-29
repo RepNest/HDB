@@ -42,5 +42,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
     on: (channel, fn) => ipcRenderer.on(channel, (_, ...args) => fn(...args)),
     off: (channel, fn) => ipcRenderer.removeListener(channel, fn)
   },
-  saveFavorite: (fav) => ipcRenderer.invoke('save-favorite', fav) // ✅ new
+  saveFavorites: (favorites) => ipcRenderer.invoke('save-favorites', favorites)
 });

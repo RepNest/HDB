@@ -149,14 +149,14 @@ ipcMain.handle('launch-app', async (_, cmd) => {
   exec(cmd);
 });
 
-ipcMain.handle('save-favorite', async (_, newFavorite) => {
+ipcMain.handle('save-favorites', async (_, updatedFavorites) => {
   try {
     const config = JSON.parse(fs.readFileSync(USER_CONFIG_PATH, 'utf-8'));
-    config.favorites = [...(config.favorites || []), newFavorite];
+    config.favorites = updatedFavorites;
     fs.writeFileSync(USER_CONFIG_PATH, JSON.stringify(config, null, 2));
     return true;
   } catch (err) {
-    console.error('Failed to save favorite:', err);
+    console.error('Failed to save favorites:', err);
     return false;
   }
 });

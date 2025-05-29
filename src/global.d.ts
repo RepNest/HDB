@@ -3,10 +3,16 @@ export {};
 declare global {
   interface Window {
     electronAPI: {
-      getConfig(): unknown;
+      getConfig(): Promise<{
+        sidebarCollapsed: boolean;
+        favorites: { name: string; url: string }[];
+        apps: { name: string; command: string }[];
+        createdAt: string;
+      }>;
       launchApp: (cmd: string) => void;
-      saveFavorite: (fav: { name: string; url: string }) => Promise<boolean>; // ✅ Add this
       showContextMenu: () => void;
+      saveFavorite: (fav: { name: string; url: string }) => Promise<boolean>;
+      saveFavorites?: (favorites: { name: string; url: string }[]) => void;
     };
   }
 

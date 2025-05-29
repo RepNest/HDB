@@ -3,19 +3,29 @@ import Sidebar from './components/Sidebar';
 import FavoritesBar from './components/FavoritesBar';
 import Tabs from './components/Tabs';
 
-type Tab = { 
-  id: number; 
-  title: string; 
-  url: string; 
-  favicon?: string 
+type Tab = {
+  id: number;
+  title: string;
+  url: string;
+  favicon?: string;
+};
+
+type Favorite = {
+  name: string;
+  url: string;
 };
 
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [tabs, setTabs] = useState<Tab[]>([
-    { id: 1, title: 'ITD Intra', url: 'https://miamidadecounty.sharepoint.com/sites/ITD-Intra' }
+    {
+      id: 1,
+      title: 'ITD Intra',
+      url: 'https://miamidadecounty.sharepoint.com/sites/ITD-Intra'
+    }
   ]);
   const [activeTabId, setActiveTabId] = useState(1);
+  const [favorites, setFavorites] = useState<Favorite[]>(window.userConfig?.favorites || []);
   const addressInput = useRef<HTMLInputElement>(null);
   const webviews: Record<number, React.RefObject<any>> = {};
 
@@ -25,25 +35,11 @@ export default function App() {
 
   const activeTab = tabs.find(t => t.id === activeTabId);
 
-  // Sync address bar to current tab URL
   useEffect(() => {
     if (addressInput.current && activeTab?.url) {
       addressInput.current.value = activeTab.url;
     }
   }, [activeTabId]);
-
-  useEffect(() => {
-  const handler = (url: string) => {
-    const newId = Date.now();
-    const newTab = { id: newId, title: 'New Tab', url };
-    setTabs(prev => [...prev, newTab]);
-    setActiveTabId(newId);
-  };
-
-  window.electronAPI?.ipc?.on?.('open-new-tab', handler);
-  return () => window.electronAPI?.ipc?.off?.('open-new-tab', handler);
-}, []);
-
 
   const handleNewTab = () => {
     const newId = Date.now();
@@ -66,21 +62,30 @@ export default function App() {
     if (!url.startsWith('http') && isLikelyUrl) url = 'https://' + url;
     if (!isLikelyUrl) url = `https://www.google.com/search?q=${encodeURIComponent(url)}`;
 
-    setTabs(tabs.map(tab => tab.id === activeTabId ? { ...tab, url } : tab));
+    setTabs(tabs.map(tab =>
+      tab.id === activeTabId ? { ...tab, url } : tab
+    ));
   };
 
   const handleEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") navigate();
+    if (e.key === 'Enter') navigate();
   };
 
-  function openFavorite(url: string): void {
+  const openFavorite = (url: string) => {
     const newId = Date.now();
     const newTab = { id: newId, title: 'New Tab', url };
     setTabs(prev => [...prev, newTab]);
     setActiveTabId(newId);
-  }
+  };
 
-  // Update tab title + favicon
+  const saveFavorite = () => {
+    if (activeTab?.url && activeTab.title) {
+      const newFav = { name: activeTab.title, url: activeTab.url };
+      window.electronAPI?.saveFavorite?.(newFav);
+      setFavorites(prev => [...prev, newFav]);
+    }
+  };
+
   useEffect(() => {
     const interval = setInterval(() => {
       const view = webviews[activeTabId]?.current;
@@ -104,28 +109,10 @@ export default function App() {
             }
             : tab
         ));
-      });
+      }).catch(() => {});
     }, 2000);
     return () => clearInterval(interval);
   }, [activeTabId]);
-
-  // // Inject right-click logic into WebView
-  // useEffect(() => {
-  //   const view = webviews[activeTabId]?.current;
-  //   if (!view) return;
-
-  //   const inject = () => {
-  //     view.executeJavaScript(`
-  //       window.addEventListener('contextmenu', (e) => {
-  //         e.preventDefault();
-  //         window.electronAPI?.showContextMenu?.();
-  //       });
-  //     `).catch(console.error);
-  //   };
-
-  //   view.addEventListener('dom-ready', inject);
-  //   return () => view.removeEventListener('dom-ready', inject);
-  // }, [activeTabId]);
 
   const goHome = () => {
     const homepage = 'https://miamidadecounty.sharepoint.com/sites/ITServiceDesk';
@@ -150,10 +137,12 @@ export default function App() {
             onKeyDown={handleEnter}
             className="flex-1 px-3 py-1 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
           />
+          <button onClick={saveFavorite} className="px-2 py-1 bg-yellow-500 text-black rounded hover:bg-yellow-400" title="Add to Favorites">
+            ⭐
+          </button>
           <button onClick={handleNewTab} className="px-2 py-1 bg-pink-600 rounded hover:bg-pink-500">➕</button>
         </div>
 
-        {/* Tabs */}
         <Tabs
           tabs={tabs}
           activeTabId={activeTabId}
@@ -161,9 +150,8 @@ export default function App() {
           handleCloseTab={handleCloseTab}
         />
 
-        <FavoritesBar onFavoriteClick={openFavorite} />
+        <FavoritesBar favorites={favorites} onFavoriteClick={openFavorite} />
 
-        {/* Webview Display */}
         <div className="flex-1 relative">
           {tabs.map(tab => (
             <webview

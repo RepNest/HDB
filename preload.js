@@ -36,10 +36,11 @@ try {
 
 contextBridge.exposeInMainWorld('electronAPI', {
   launchApp: (cmd) => ipcRenderer.invoke('launch-app', cmd),
-  getConfig: () => config,
+  getConfig: () => ipcRenderer.invoke('get-user-config'), // ✅ always fresh
   showContextMenu: () => ipcRenderer.invoke('show-context-menu'),
   ipc: {
     on: (channel, fn) => ipcRenderer.on(channel, (_, ...args) => fn(...args)),
     off: (channel, fn) => ipcRenderer.removeListener(channel, fn)
-  }
+  },
+  saveFavorite: (fav) => ipcRenderer.invoke('save-favorite', fav) // ✅ new
 });

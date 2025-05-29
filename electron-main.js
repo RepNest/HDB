@@ -139,12 +139,28 @@ app.on('web-contents-created', (event, contents) => {
   });
 });
 
-  // IPC handlers
-  ipcMain.handle('get-user-config', async () => userConfig);
-  ipcMain.handle('launch-app', async (_, cmd) => {
-    exec(cmd);
-  });
-  
+// ✅ IPC handlers
+ipcMain.handle('get-user-config', async () => {
+  const data = fs.readFileSync(USER_CONFIG_PATH, 'utf-8');
+  return JSON.parse(data);
+});
+
+ipcMain.handle('launch-app', async (_, cmd) => {
+  exec(cmd);
+});
+
+ipcMain.handle('save-favorite', async (_, newFavorite) => {
+  try {
+    const config = JSON.parse(fs.readFileSync(USER_CONFIG_PATH, 'utf-8'));
+    config.favorites = [...(config.favorites || []), newFavorite];
+    fs.writeFileSync(USER_CONFIG_PATH, JSON.stringify(config, null, 2));
+    return true;
+  } catch (err) {
+    console.error('Failed to save favorite:', err);
+    return false;
+  }
+});
+
   // App lifecycle
   app.whenReady().then(() => {
     initializeUserConfig();

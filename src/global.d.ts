@@ -2,15 +2,11 @@ export {};
 
 declare global {
   interface Window {
-    userConfig: {
-      sidebarCollapsed: boolean;
-      favorites: { name: string; url: string }[];
-      apps: { name: string; command: string }[];
-      createdAt: string;
-    };
-    electronAPI?: {
+    electronAPI: {
       getConfig(): unknown;
       launchApp: (cmd: string) => void;
+      saveFavorite: (fav: { name: string; url: string }) => Promise<boolean>; // ✅ Add this
+      showContextMenu: () => void;
     };
   }
 

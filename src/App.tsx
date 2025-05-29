@@ -99,32 +99,45 @@ const saveFavorite = async () => {
 
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      const view = webviews[activeTabId]?.current;
-      if (!view) return;
+  const view = webviews[activeTabId]?.current;
+  if (!view) return;
 
-      view.executeJavaScript(`
-        Promise.resolve({
-          title: document.title,
-          favicon: (() => {
-            const link = document.querySelector("link[rel~='icon']");
-            return link ? link.href : null;
-          })()
-        });
-      `, true).then((result: any) => {
-        setTabs(prev => prev.map(tab =>
-          tab.id === activeTabId
-            ? {
+  const updateTabMetadata = () => {
+    view.executeJavaScript(`
+      Promise.resolve({
+        title: document.title,
+        favicon: (() => {
+          const link = document.querySelector("link[rel~='icon']");
+          return link ? link.href : null;
+        })()
+      });
+    `, true).then((result: any) => {
+      setTabs(prev => prev.map(tab =>
+        tab.id === activeTabId
+          ? {
               ...tab,
               title: result.title || tab.title,
               favicon: result.favicon || tab.favicon
             }
-            : tab
-        ));
-      }).catch(() => {});
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [activeTabId]);
+          : tab
+      ));
+    }).catch(() => {});
+  };
+
+  const handleTitleUpdate = () => updateTabMetadata();
+  const handleNavigate = () => updateTabMetadata();
+
+  view.addEventListener('page-title-updated', handleTitleUpdate);
+  view.addEventListener('did-navigate', handleNavigate);
+  view.addEventListener('did-navigate-in-page', handleNavigate);
+
+  return () => {
+    view.removeEventListener('page-title-updated', handleTitleUpdate);
+    view.removeEventListener('did-navigate', handleNavigate);
+    view.removeEventListener('did-navigate-in-page', handleNavigate);
+  };
+}, [activeTabId]);
+
 
   const goHome = () => {
     const homepage = 'https://miamidadecounty.sharepoint.com/sites/ITServiceDesk';

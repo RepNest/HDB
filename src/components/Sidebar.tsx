@@ -11,13 +11,18 @@ export default function Sidebar({ isOpen, toggle }: SidebarProps) {
   const [apps, setApps] = useState<{ name: string; command: string }[]>([]);
   const [favorites, setFavorites] = useState<{ name: string; url: string }[]>([]);
 
-  useEffect(() => {
-    const config = window.electronAPI?.getConfig();
-    if (config) {
-      setApps(config.apps || []);
-      setFavorites(config.favorites || []);
-    }
-  }, []);
+useEffect(() => {
+  const config = window.electronAPI?.getConfig?.();
+  if (config instanceof Promise) {
+    config.then((c: any) => {
+      setApps(c.apps || []);
+      setFavorites(c.favorites || []);
+    });
+  } else if (config) {
+    setApps(config.apps || []);
+    setFavorites(config.favorites || []);
+  }
+}, []);
 
   const launchApp = (cmd: string) => {
     window.electronAPI?.launchApp(cmd);

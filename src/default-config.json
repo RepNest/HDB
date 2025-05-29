@@ -1,11 +1,13 @@
 {
   "sidebarCollapsed": false,
   "favorites": [
-    { "name": "Outlook", "url": "https://outlook.office365.com", "icon": "📧" },
     { "name": "SmartIT", "url": "https://smartit.miamidade.gov", "icon": "🛠️" }
   ],
   "apps": [
     { "name": "Notepad", "command": "notepad", "icon": "📝" },
     { "name": "Calculator", "command": "calc", "icon": "🧮" }
+  ],
+  "fixes": [
+    {}
   ]
 }

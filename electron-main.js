@@ -4,6 +4,14 @@ const fs = require('fs');
 const os = require('os');
 const { exec } = require('child_process');
 
+app.commandLine.appendSwitch('auth-server-whitelist', '*.miamidade.gov,*.sharepoint.com');
+app.commandLine.appendSwitch('auth-negotiate-delegate-whitelist', '*.miamidade.gov,*.sharepoint.com');
+app.commandLine.appendSwitch('auth-schemes', 'ntlm,negotiate,basic');
+app.commandLine.appendSwitch('proxy-auto-detect');
+app.commandLine.appendSwitch('enable-features', 'AllowInsecurePrivateNetworkRequests');
+
+app.setPath('userData', path.join(os.homedir(), 'AppData', 'Roaming', 'HelpDeskBrowser'));
+
 const CONFIG_DIR = path.join(os.homedir(), 'AppData', 'Roaming', 'helpdeskbrowser', 'configs');
 const USERNAME = os.userInfo().username.toLowerCase();
 const USER_CONFIG_PATH = path.join(CONFIG_DIR, `${USERNAME}.json`);
@@ -161,6 +169,9 @@ ipcMain.handle('save-favorites', async (_, updatedFavorites) => {
   }
 });
 
+// app.commandLine.appendSwitch('ignore-certificate-errors', 'true');
+
+
   // App lifecycle
   app.whenReady().then(() => {
     initializeUserConfig();
@@ -175,3 +186,23 @@ ipcMain.handle('save-favorites', async (_, updatedFavorites) => {
     if (process.platform !== 'darwin') app.quit();
   });
   
+  app.whenReady().then(() => {
+  const ses = session.defaultSession;
+  ses.resolveProxy('https://outlook.office.com').then(proxy => {
+    console.log('🧭 Proxy settings for https://outlook.office.com:', proxy);
+  });
+});
+
+app.on('login', (event, webContents, request, authInfo, callback) => {
+  event.preventDefault();
+
+  // Only respond to negotiate/NTLM challenges from trusted hosts
+  if (authInfo.isProxy === false && /miamidade\.gov|sharepoint\.com/.test(authInfo.host)) {
+    console.log(`🔐 Attempting automatic login to ${authInfo.host}`);
+    callback('', ''); // Blank credentials = use Windows credentials
+  } else {
+    console.warn('🔐 Untrusted domain requested credentials:', authInfo.host);
+  }
+});
+
+

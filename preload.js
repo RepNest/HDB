@@ -37,5 +37,9 @@ try {
 contextBridge.exposeInMainWorld('electronAPI', {
   launchApp: (cmd) => ipcRenderer.invoke('launch-app', cmd),
   getConfig: () => config,
-  showContextMenu: () => ipcRenderer.invoke('show-context-menu')
+  showContextMenu: () => ipcRenderer.invoke('show-context-menu'),
+  ipc: {
+    on: (channel, fn) => ipcRenderer.on(channel, (_, ...args) => fn(...args)),
+    off: (channel, fn) => ipcRenderer.removeListener(channel, fn)
+  }
 });

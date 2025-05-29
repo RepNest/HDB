@@ -32,6 +32,19 @@ export default function App() {
     }
   }, [activeTabId]);
 
+  useEffect(() => {
+  const handler = (url: string) => {
+    const newId = Date.now();
+    const newTab = { id: newId, title: 'New Tab', url };
+    setTabs(prev => [...prev, newTab]);
+    setActiveTabId(newId);
+  };
+
+  window.electronAPI?.ipc?.on?.('open-new-tab', handler);
+  return () => window.electronAPI?.ipc?.off?.('open-new-tab', handler);
+}, []);
+
+
   const handleNewTab = () => {
     const newId = Date.now();
     const newTab = { id: newId, title: 'New Tab', url: 'https://www.google.com' };

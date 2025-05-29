@@ -64,37 +64,81 @@ function createWindow() {
 // Handle context menu in webviews
 app.on('web-contents-created', (event, contents) => {
   contents.on('context-menu', (e, params) => {
-    const menu = Menu.buildFromTemplate([
+    const template = [];
+
+    // 🌐 Open link in new tab
+    if (params.linkURL) {
+      template.push({
+        label: 'Open Link in New Tab',
+        click: () => {
+          contents.send('open-new-tab', params.linkURL);
+        }
+      });
+      template.push({
+        label: 'Copy Link Address',
+        click: () => {
+          require('electron').clipboard.writeText(params.linkURL);
+        }
+      });
+    }
+
+    // 🖼️ Save image
+    if (params.srcURL && params.mediaType === 'image') {
+      template.push({
+        label: 'Save Image As...',
+        click: () => {
+          require('electron').shell.openExternal(params.srcURL);
+        }
+      });
+    }
+
+    // 🔍 Search selected text
+    if (params.selectionText) {
+      template.push({
+        label: `Search Google for "${params.selectionText.slice(0, 25)}…"`,
+        click: () => {
+          const q = encodeURIComponent(params.selectionText);
+          require('electron').shell.openExternal(`https://www.google.com/search?q=${q}`);
+        }
+      });
+    }
+
+    if (template.length > 0) {
+      template.push({ type: 'separator' });
+    }
+
+    // ✂️ Standard editing options
+    template.push(
+      { role: 'cut', enabled: params.editFlags.canCut },
       { role: 'copy', enabled: params.editFlags.canCopy },
       { role: 'paste', enabled: params.editFlags.canPaste },
-      { role: 'cut', enabled: params.editFlags.canCut },
       { type: 'separator' },
       { role: 'selectAll' },
       { type: 'separator' },
       { label: 'Reload', click: () => contents.reload() }
-    ]);
+    );
 
+    const menu = Menu.buildFromTemplate(template);
     menu.popup({ window: BrowserWindow.fromWebContents(contents) });
   });
 
-   // Support for popups
-    contents.setWindowOpenHandler(({ url }) => {
-      const popup = new BrowserWindow({
-        width: 800,
-        height: 600,
-        parent: BrowserWindow.fromWebContents(contents),
-        webPreferences: {
-          webviewTag: true,
-          contextIsolation: true,
-          preload: path.join(__dirname, 'preload.js'),
-          sandbox: false
-        }
-      });
-      popup.loadURL(url);
-      return { action: 'deny' }; // Prevent default, handled manually
+  contents.setWindowOpenHandler(({ url }) => {
+    const popup = new BrowserWindow({
+      width: 800,
+      height: 600,
+      parent: BrowserWindow.fromWebContents(contents),
+      webPreferences: {
+        webviewTag: true,
+        contextIsolation: true,
+        preload: path.join(__dirname, 'preload.js'),
+        sandbox: false
+      }
     });
+    popup.loadURL(url);
+    return { action: 'deny' };
   });
-  
+});
+
   // IPC handlers
   ipcMain.handle('get-user-config', async () => userConfig);
   ipcMain.handle('launch-app', async (_, cmd) => {

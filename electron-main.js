@@ -4,15 +4,18 @@ const fs = require('fs');
 const os = require('os');
 const { exec } = require('child_process');
 
+// Proxy + Auth settings
 app.commandLine.appendSwitch('auth-server-whitelist', '*.miamidade.gov,*.sharepoint.com');
 app.commandLine.appendSwitch('auth-negotiate-delegate-whitelist', '*.miamidade.gov,*.sharepoint.com');
 app.commandLine.appendSwitch('auth-schemes', 'ntlm,negotiate,basic');
 app.commandLine.appendSwitch('proxy-auto-detect');
 app.commandLine.appendSwitch('enable-features', 'AllowInsecurePrivateNetworkRequests');
 
+// Set custom userData directory
 app.setPath('userData', path.join(os.homedir(), 'AppData', 'Roaming', 'HelpDeskBrowser'));
 
-const CONFIG_DIR = path.join(os.homedir(), 'AppData', 'Roaming', 'helpdeskbrowser', 'configs');
+// Config paths
+const CONFIG_DIR = path.join(app.getPath('userData'), 'configs');
 const USERNAME = os.userInfo().username.toLowerCase();
 const USER_CONFIG_PATH = path.join(CONFIG_DIR, `${USERNAME}.json`);
 const DEFAULT_CONFIG_PATH = path.join(__dirname, 'src', 'default-config.json');
@@ -20,9 +23,7 @@ const DEFAULT_CONFIG_PATH = path.join(__dirname, 'src', 'default-config.json');
 let userConfig = {};
 
 function initializeUserConfig() {
-  if (!fs.existsSync(CONFIG_DIR)) {
-    fs.mkdirSync(CONFIG_DIR, { recursive: true });
-  }
+  if (!fs.existsSync(CONFIG_DIR)) fs.mkdirSync(CONFIG_DIR, { recursive: true });
 
   const defaultConfig = JSON.parse(fs.readFileSync(DEFAULT_CONFIG_PATH, 'utf-8'));
 
@@ -51,7 +52,6 @@ function initializeUserConfig() {
   }
 }
 
-// Create the main browser window
 function createWindow() {
   const win = new BrowserWindow({
     width: 1400,
@@ -62,45 +62,38 @@ function createWindow() {
       nodeIntegration: false,
       webviewTag: true,
       sandbox: false,
-      webSecurity: false
+      webSecurity: false,
+      partition: 'persist:shared' // all windows share this partition/session
     }
   });
 
   win.loadFile('dist/index.html');
 }
-  
-// Handle context menu in webviews
+
 app.on('web-contents-created', (event, contents) => {
   contents.on('context-menu', (e, params) => {
     const template = [];
 
-    // 🌐 Open link in new tab
     if (params.linkURL) {
-      template.push({
-        label: 'Open Link in New Tab',
-        click: () => {
-          contents.send('open-new-tab', params.linkURL);
+      template.push(
+        {
+          label: 'Open Link in New Tab',
+          click: () => contents.send('open-new-tab', params.linkURL)
+        },
+        {
+          label: 'Copy Link Address',
+          click: () => require('electron').clipboard.writeText(params.linkURL)
         }
-      });
-      template.push({
-        label: 'Copy Link Address',
-        click: () => {
-          require('electron').clipboard.writeText(params.linkURL);
-        }
-      });
+      );
     }
 
-    // 🖼️ Save image
     if (params.srcURL && params.mediaType === 'image') {
       template.push({
         label: 'Save Image As...',
-        click: () => {
-          require('electron').shell.openExternal(params.srcURL);
-        }
+        click: () => require('electron').shell.openExternal(params.srcURL)
       });
     }
 
-    // 🔍 Search selected text
     if (params.selectionText) {
       template.push({
         label: `Search Google for "${params.selectionText.slice(0, 25)}…"`,
@@ -111,11 +104,8 @@ app.on('web-contents-created', (event, contents) => {
       });
     }
 
-    if (template.length > 0) {
-      template.push({ type: 'separator' });
-    }
+    if (template.length > 0) template.push({ type: 'separator' });
 
-    // ✂️ Standard editing options
     template.push(
       { role: 'cut', enabled: params.editFlags.canCut },
       { role: 'copy', enabled: params.editFlags.canCopy },
@@ -134,20 +124,22 @@ app.on('web-contents-created', (event, contents) => {
     const popup = new BrowserWindow({
       width: 800,
       height: 600,
-      parent: BrowserWindow.fromWebContents(contents),
       webPreferences: {
-        webviewTag: true,
-        contextIsolation: true,
         preload: path.join(__dirname, 'preload.js'),
-        sandbox: false
+        contextIsolation: true,
+        nodeIntegration: false,
+        webviewTag: true,
+        sandbox: false,
+        partition: 'persist:shared' // ⬅ retains auth/session
       }
     });
+
     popup.loadURL(url);
     return { action: 'deny' };
   });
 });
 
-// ✅ IPC handlers
+// IPC handlers
 ipcMain.handle('get-user-config', async () => {
   const data = fs.readFileSync(USER_CONFIG_PATH, 'utf-8');
   return JSON.parse(data);
@@ -169,40 +161,34 @@ ipcMain.handle('save-favorites', async (_, updatedFavorites) => {
   }
 });
 
-// app.commandLine.appendSwitch('ignore-certificate-errors', 'true');
-
-
-  // App lifecycle
-  app.whenReady().then(() => {
-    initializeUserConfig();
-    createWindow();
-  
-    app.on('activate', () => {
-      if (BrowserWindow.getAllWindows().length === 0) createWindow();
-    });
-  });
-  
-  app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') app.quit();
-  });
-  
-  app.whenReady().then(() => {
-  const ses = session.defaultSession;
-  ses.resolveProxy('https://outlook.office.com').then(proxy => {
-    console.log('🧭 Proxy settings for https://outlook.office.com:', proxy);
+// Proxy resolution test
+app.whenReady().then(() => {
+  session.defaultSession.resolveProxy('https://outlook.office.com').then(proxy => {
+    console.log('🧭 Proxy settings:', proxy);
   });
 });
 
+// Auto-login for trusted domains (WIA)
 app.on('login', (event, webContents, request, authInfo, callback) => {
   event.preventDefault();
-
-  // Only respond to negotiate/NTLM challenges from trusted hosts
   if (authInfo.isProxy === false && /miamidade\.gov|sharepoint\.com/.test(authInfo.host)) {
     console.log(`🔐 Attempting automatic login to ${authInfo.host}`);
-    callback('', ''); // Blank credentials = use Windows credentials
+    callback('', '');
   } else {
     console.warn('🔐 Untrusted domain requested credentials:', authInfo.host);
   }
 });
 
+// Lifecycle
+app.whenReady().then(() => {
+  initializeUserConfig();
+  createWindow();
 
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
+});
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit();
+});

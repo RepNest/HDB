@@ -42,5 +42,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     on: (channel, fn) => ipcRenderer.on(channel, (_, ...args) => fn(...args)),
     off: (channel, fn) => ipcRenderer.removeListener(channel, fn)
   },
-  saveFavorites: (favorites) => ipcRenderer.invoke('save-favorites', favorites)
+  saveFavorites: (favorites) => ipcRenderer.invoke('save-favorites', favorites),
+  onNewTab: (callback) => ipcRenderer.on('open-new-tab', (_, url) => callback(url))
 });

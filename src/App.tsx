@@ -41,6 +41,17 @@ export default function App() {
     }
   }, [activeTabId]);
 
+  useEffect(() => {
+    const handleOpenTab = (e: any) => {
+      const newId = Date.now();
+      const newTab = { id: newId, title: 'New Tab', url: e.detail.url };
+      setTabs(prev => [...prev, newTab]);
+      setActiveTabId(newId);
+    };
+    window.addEventListener('open-new-tab', handleOpenTab as any);
+    return () => window.removeEventListener('open-new-tab', handleOpenTab as any);
+  }, []);
+
   const handleNewTab = () => {
     const newId = Date.now();
     const newTab = { id: newId, title: 'New Tab', url: 'https://www.google.com' };
@@ -78,66 +89,57 @@ export default function App() {
     setActiveTabId(newId);
   };
 
-const saveFavorite = async () => {
-  if (!activeTab?.url || !activeTab?.title) return;
+  const saveFavorite = async () => {
+    if (!activeTab?.url || !activeTab?.title) return;
 
-  const config = await window.electronAPI.getConfig?.();
-  const currentFavorites = config?.favorites || [];
+    const config = await window.electronAPI.getConfig?.();
+    const currentFavorites = config?.favorites || [];
+    const newFavorite = { name: activeTab.title, url: activeTab.url };
+    const exists = currentFavorites.some(f => f.url === newFavorite.url);
+    if (exists) return;
 
-  const newFavorite = { name: activeTab.title, url: activeTab.url };
-
-  // Avoid duplicates
-  const exists = currentFavorites.some(f => f.url === newFavorite.url);
-  if (exists) return;
-
-  const updated = [...currentFavorites, newFavorite];
-
-  setFavorites(updated); // UI
-  await window.electronAPI.saveFavorites?.(updated); // Save full array
-};
-
-
+    const updated = [...currentFavorites, newFavorite];
+    setFavorites(updated);
+    await window.electronAPI.saveFavorites?.(updated);
+  };
 
   useEffect(() => {
-  const view = webviews[activeTabId]?.current;
-  if (!view) return;
+    const view = webviews[activeTabId]?.current;
+    if (!view) return;
 
-  const updateTabMetadata = () => {
-    view.executeJavaScript(`
-      Promise.resolve({
-        title: document.title,
-        favicon: (() => {
-          const link = document.querySelector("link[rel~='icon']");
-          return link ? link.href : null;
-        })()
-      });
-    `, true).then((result: any) => {
-      setTabs(prev => prev.map(tab =>
-        tab.id === activeTabId
-          ? {
-              ...tab,
-              title: result.title || tab.title,
-              favicon: result.favicon || tab.favicon
-            }
-          : tab
-      ));
-    }).catch(() => {});
-  };
+    const updateTabMetadata = () => {
+      view.executeJavaScript(`
+        Promise.resolve({
+          title: document.title,
+          favicon: (() => {
+            const link = document.querySelector("link[rel~='icon']");
+            return link ? link.href : null;
+          })()
+        });
+      `, true).then((result: any) => {
+        setTabs(prev => prev.map(tab =>
+          tab.id === activeTabId
+            ? {
+                ...tab,
+                title: result.title || tab.title,
+                favicon: result.favicon || tab.favicon
+              }
+            : tab
+        ));
+      }).catch(() => {});
+    };
 
-  const handleTitleUpdate = () => updateTabMetadata();
-  const handleNavigate = () => updateTabMetadata();
+    const handleNavigate = () => updateTabMetadata();
+    view.addEventListener('did-navigate', handleNavigate);
+    view.addEventListener('did-navigate-in-page', handleNavigate);
+    view.addEventListener('page-title-updated', updateTabMetadata);
 
-  view.addEventListener('page-title-updated', handleTitleUpdate);
-  view.addEventListener('did-navigate', handleNavigate);
-  view.addEventListener('did-navigate-in-page', handleNavigate);
-
-  return () => {
-    view.removeEventListener('page-title-updated', handleTitleUpdate);
-    view.removeEventListener('did-navigate', handleNavigate);
-    view.removeEventListener('did-navigate-in-page', handleNavigate);
-  };
-}, [activeTabId]);
-
+    return () => {
+      view.removeEventListener('did-navigate', handleNavigate);
+      view.removeEventListener('did-navigate-in-page', handleNavigate);
+      view.removeEventListener('page-title-updated', updateTabMetadata);
+    };
+  }, [activeTabId]);
 
   const goHome = () => {
     const homepage = 'https://miamidadecounty.sharepoint.com/sites/ITServiceDesk';
@@ -150,7 +152,6 @@ const saveFavorite = async () => {
     <div className="h-screen w-screen flex bg-neutral-900 text-white font-sans">
       <Sidebar isOpen={sidebarOpen} toggle={() => setSidebarOpen(!sidebarOpen)} />
       <div className="flex-1 flex flex-col">
-        {/* Address Bar */}
         <div className="flex items-center gap-2 bg-gradient-to-r from-purple-800 to-indigo-900 p-2 shadow-md">
           <button onClick={goHome} className="px-2" title="Home">🏠</button>
           <button onClick={() => webviews[activeTabId]?.current?.goBack()} className="px-2">⟨</button>
@@ -162,19 +163,11 @@ const saveFavorite = async () => {
             onKeyDown={handleEnter}
             className="flex-1 px-3 py-1 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
           />
-          <button onClick={saveFavorite} className="px-2 py-1 bg-yellow-500 text-black rounded hover:bg-yellow-400" title="Add to Favorites">
-            ⭐
-          </button>
+          <button onClick={saveFavorite} className="px-2 py-1 bg-yellow-500 text-black rounded hover:bg-yellow-400" title="Add to Favorites">⭐</button>
           <button onClick={handleNewTab} className="px-2 py-1 bg-pink-600 rounded hover:bg-pink-500">➕</button>
         </div>
 
-        <Tabs
-          tabs={tabs}
-          activeTabId={activeTabId}
-          setActiveTabId={setActiveTabId}
-          handleCloseTab={handleCloseTab}
-        />
-
+        <Tabs tabs={tabs} activeTabId={activeTabId} setActiveTabId={setActiveTabId} handleCloseTab={handleCloseTab} />
         <FavoritesBar favorites={favorites} onFavoriteClick={openFavorite} />
 
         <div className="flex-1 relative">

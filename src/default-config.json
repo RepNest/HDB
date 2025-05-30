@@ -1,13 +1,40 @@
 {
   "sidebarCollapsed": false,
-  "favorites": [
-    { "name": "SmartIT", "url": "https://smartit.miamidade.gov", "icon": "🛠️" }
-  ],
   "apps": [
-    { "name": "Notepad", "command": "notepad", "icon": "📝" },
-    { "name": "Calculator", "command": "calc", "icon": "🧮" }
+    {
+      "name": "Notepad",
+      "command": "notepad.exe"
+    },
+    {
+      "name": "Calculator",
+      "command": "calc.exe"
+    }
   ],
-  "fixes": [
-    {}
-  ]
+  "favorites": {
+    "Frequent Sites": [
+      {
+        "name": "ITD Intra",
+        "url": "https://miamidadecounty.sharepoint.com/sites/ITD-Intra",
+        "favicon": "https://miamidadecounty.sharepoint.com/favicon.ico"
+      },
+      {
+        "name": "Outlook",
+        "url": "https://outlook.office.com",
+        "favicon": "https://outlook.office.com/favicon.ico"
+      }
+    ],
+    "Dev Tools": [
+      {
+        "name": "Google",
+        "url": "https://www.google.com",
+        "favicon": "https://www.google.com/favicon.ico"
+      },
+      {
+        "name": "MD Gov",
+        "url": "https://www.miamidade.gov",
+        "favicon": "https://www.miamidade.gov/favicon.ico"
+      }
+    ]
+  },
+  "createdAt": "2025-01-01T00:00:00.000Z"
 }

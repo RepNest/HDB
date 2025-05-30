@@ -10,7 +10,7 @@ const defaultPath = path.join(baseDir, 'default-config.json');
 
 let config = {
   sidebarCollapsed: false,
-  favorites: [],
+  favorites: {},
   apps: [],
   createdAt: new Date().toISOString()
 };
@@ -36,12 +36,12 @@ try {
 
 contextBridge.exposeInMainWorld('electronAPI', {
   launchApp: (cmd) => ipcRenderer.invoke('launch-app', cmd),
-  getConfig: () => ipcRenderer.invoke('get-user-config'), // ✅ always fresh
-  showContextMenu: () => ipcRenderer.invoke('show-context-menu'),
+  getConfig: () => ipcRenderer.invoke('get-user-config'),
+  saveFavorites: (favorites) => ipcRenderer.invoke('save-favorites', favorites),
+  showContextMenu: (options) => ipcRenderer.invoke('show-context-menu', options),
   ipc: {
     on: (channel, fn) => ipcRenderer.on(channel, (_, ...args) => fn(...args)),
     off: (channel, fn) => ipcRenderer.removeListener(channel, fn)
   },
-  saveFavorites: (favorites) => ipcRenderer.invoke('save-favorites', favorites),
   onNewTab: (callback) => ipcRenderer.on('open-new-tab', (_, url) => callback(url))
 });

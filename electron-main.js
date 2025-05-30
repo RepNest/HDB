@@ -140,26 +140,126 @@ app.on('web-contents-created', (event, contents) => {
 });
 
 // IPC handlers
+// ipcMain.handle('get-user-config', async () => {
+//   const data = fs.readFileSync(USER_CONFIG_PATH, 'utf-8');
+//   return JSON.parse(data);
+// });
+
+// ipcMain.handle('get-user-config', async () => {
+//   try {
+//     const data = fs.readFileSync(USER_CONFIG_PATH, 'utf-8');
+//     const config = JSON.parse(data);
+
+//     // 🛠 Auto-upgrade flat array of favorites to foldered format
+//     if (Array.isArray(config.favorites)) {
+//       config.favorites = { "Unsorted": config.favorites };
+//       fs.writeFileSync(USER_CONFIG_PATH, JSON.stringify(config, null, 2));
+//     }
+
+//     // 🧼 Fallback to empty structure if invalid
+//     if (
+//       typeof config.favorites !== 'object' ||
+//       config.favorites === null ||
+//       Array.isArray(config.favorites)
+//     ) {
+//       config.favorites = { "Unsorted": [] };
+//       fs.writeFileSync(USER_CONFIG_PATH, JSON.stringify(config, null, 2));
+//     }
+
+//     return config;
+//   } catch (err) {
+//     console.error('❌ Failed to load config:', err.message);
+//     return {
+//       sidebarCollapsed: false,
+//       apps: [],
+//       favorites: { "Unsorted": [] },
+//       createdAt: new Date().toISOString()
+//     };
+//   }
+// });
+
+
+
 ipcMain.handle('get-user-config', async () => {
-  const data = fs.readFileSync(USER_CONFIG_PATH, 'utf-8');
-  return JSON.parse(data);
+  try {
+    const raw = fs.readFileSync(USER_CONFIG_PATH, 'utf-8');
+    const config = JSON.parse(raw);
+
+    // Only auto-upgrade if favorites is a flat array (legacy)
+    if (Array.isArray(config.favorites)) {
+      config.favorites = { Unsorted: config.favorites };
+      fs.writeFileSync(USER_CONFIG_PATH, JSON.stringify(config, null, 2));
+    }
+
+    return config;
+  } catch (err) {
+    console.error('❌ Failed to read user config:', err.message);
+    return {
+      sidebarCollapsed: false,
+      apps: [],
+      favorites: {},
+      createdAt: new Date().toISOString()
+    };
+  }
 });
+
+
+
+
 
 ipcMain.handle('launch-app', async (_, cmd) => {
   exec(cmd);
 });
 
+// ipcMain.handle('save-favorites', async (_, updatedFavorites) => {
+//   try {
+//     const config = JSON.parse(fs.readFileSync(USER_CONFIG_PATH, 'utf-8'));
+//     config.favorites = updatedFavorites;
+//     fs.writeFileSync(USER_CONFIG_PATH, JSON.stringify(config, null, 2));
+//     return true;
+//   } catch (err) {
+//     console.error('Failed to save favorites:', err);
+//     return false;
+//   }
+// });
+
 ipcMain.handle('save-favorites', async (_, updatedFavorites) => {
   try {
+    // Validate structure: must be an object with folder names as keys
+    if (
+      typeof updatedFavorites !== 'object' ||
+      Array.isArray(updatedFavorites)
+    ) {
+      throw new Error('Favorites must be an object of folders');
+    }
+
+    for (const [folder, entries] of Object.entries(updatedFavorites)) {
+      if (!Array.isArray(entries)) {
+        throw new Error(`Favorites in "${folder}" must be an array`);
+      }
+      for (const fav of entries) {
+        if (typeof fav !== 'object' || !fav.name || !fav.url) {
+          throw new Error(`Invalid favorite in "${folder}": ${JSON.stringify(fav)}`);
+        }
+      }
+    }
+
+    // Read current config
     const config = JSON.parse(fs.readFileSync(USER_CONFIG_PATH, 'utf-8'));
+
+    // Replace only the favorites
     config.favorites = updatedFavorites;
+
+    // Save updated config
     fs.writeFileSync(USER_CONFIG_PATH, JSON.stringify(config, null, 2));
+
     return true;
   } catch (err) {
-    console.error('Failed to save favorites:', err);
+    console.error('❌ Failed to save favorites:', err.message);
     return false;
   }
 });
+
 
 // Proxy resolution test
 app.whenReady().then(() => {
@@ -178,6 +278,8 @@ app.on('login', (event, webContents, request, authInfo, callback) => {
     console.warn('🔐 Untrusted domain requested credentials:', authInfo.host);
   }
 });
+
+
 
 // Lifecycle
 app.whenReady().then(() => {

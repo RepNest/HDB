@@ -9,18 +9,18 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen, toggle }: SidebarProps) {
   const [apps, setApps] = useState<{ name: string; command: string }[]>([]);
-  const [favorites, setFavorites] = useState<{ name: string; url: string }[]>([]);
+  // const [favorites, setFavorites] = useState<{ name: string; url: string }[]>([]);
 
 useEffect(() => {
   const config = window.electronAPI?.getConfig?.();
   if (config instanceof Promise) {
     config.then((c: any) => {
       setApps(c.apps || []);
-      setFavorites(c.favorites || []);
+      // setFavorites(c.favorites || []);
     });
   } else if (config) {
     setApps(config.apps || []);
-    setFavorites(config.favorites || []);
+  //   setFavorites(config.favorites || []);
   }
 }, []);
 
@@ -56,7 +56,7 @@ useEffect(() => {
         </button>
       ))}
 
-      <div className={clsx('text-sm text-gray-400 mt-4 mb-2', isOpen ? 'pl-2' : '')}>Web</div>
+      {/* <div className={clsx('text-sm text-gray-400 mt-4 mb-2', isOpen ? 'pl-2' : '')}>Web</div>
       {favorites.map((fav, idx) => (
         <button
           key={idx}
@@ -70,7 +70,7 @@ useEffect(() => {
           <span className="font-bold">{fav.name[0]}</span>
           {isOpen && <span className="ml-2 truncate">{fav.name}</span>}
         </button>
-      ))}
+      ))} */}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+// App.tsx
 import React, { useState, useRef, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import FavoritesBar from './components/FavoritesBar';
@@ -91,51 +92,39 @@ export default function App() {
   const promptFavoriteSave = () => setShowFolderPrompt(true);
 
   const saveFavoriteToFolder = async () => {
-  if (!activeTab?.url || !activeTab?.title) return;
-
-  const folder = selectedFolder || newFolderName.trim();
-  if (!folder) return;
-
-  const newFavorite = {
-    name: activeTab.title,
-    url: activeTab.url,
-    favicon: getFaviconFromURL(activeTab.url)
+    if (!activeTab?.url || !activeTab?.title) return;
+    const folder = selectedFolder || newFolderName.trim() || ' ';
+    const newFavorite = {
+      name: activeTab.title,
+      url: activeTab.url,
+      favicon: getFaviconFromURL(activeTab.url)
+    };
+    const current = { ...favorites };
+    const exists = current[folder]?.some(f => f.url === newFavorite.url);
+    if (exists) return;
+    current[folder] = [...(current[folder] || []), newFavorite];
+    setFavorites(current);
+    await window.electronAPI.saveFavorites?.(current);
+    setShowFolderPrompt(false);
+    setNewFolderName('');
+    setSelectedFolder(null);
   };
 
-  const current = { ...favorites };
-  const exists = current[folder]?.some(f => f.url === newFavorite.url);
-  if (exists) return;
+  const getFaviconFromURL = (url: string) => {
+    try {
+      const parsed = new URL(url);
+      return `${parsed.origin}/favicon.ico`;
+    } catch {
+      return '';
+    }
+  };
 
-  current[folder] = [...(current[folder] || []), newFavorite];
-  setFavorites(current);
-  await window.electronAPI.saveFavorites?.(current);
-
-  setShowFolderPrompt(false);
-  setNewFolderName('');
-  setSelectedFolder(null);
-};
-
-
-const getFaviconFromURL = (url: string) => {
-  try {
-    const parsed = new URL(url);
-    return `${parsed.origin}/favicon.ico`;
-  } catch {
-    return '';
-  }
-};
-
-  const deleteFavorite = async (name: string, folderName?: string) => {
+  const deleteFavorite = async (name: string, folder?: string) => {
     const updated = { ...favorites };
-    if (folderName && updated[folderName]) {
-      updated[folderName] = updated[folderName].filter(f => f.name !== name);
-    } else {
-      if (folderName && updated[folderName]) {
-  updated[folderName] = updated[folderName].filter(f => f.name !== name);
-  if (updated[folderName].length === 0) {
-    delete updated[folderName]; // optional: clean up empty folders
-  }
-}
+    const targetFolder = folder || ' ';
+    if (updated[targetFolder]) {
+      updated[targetFolder] = updated[targetFolder].filter(f => f.name !== name);
+      if (updated[targetFolder].length === 0 && targetFolder !== ' ') delete updated[targetFolder];
     }
     setFavorites(updated);
     await window.electronAPI.saveFavorites?.(updated);
@@ -148,20 +137,18 @@ const getFaviconFromURL = (url: string) => {
     await window.electronAPI.saveFavorites?.(updated);
   };
 
-const renameFolder = async (oldName: string, newName: string) => {
-  if (!oldName || !newName || oldName === newName || favorites[newName]) return;
-  const updated = { ...favorites };
-  updated[newName] = updated[oldName];
-  delete updated[oldName];
-  setFavorites(updated);
-  await window.electronAPI.saveFavorites?.(updated);
-};
-
+  const renameFolder = async (oldName: string, newName: string) => {
+    if (!oldName || !newName || oldName === newName || favorites[newName]) return;
+    const updated = { ...favorites };
+    updated[newName] = updated[oldName];
+    delete updated[oldName];
+    setFavorites(updated);
+    await window.electronAPI.saveFavorites?.(updated);
+  };
 
   useEffect(() => {
     const view = webviews[activeTabId]?.current;
     if (!view) return;
-
     const updateTabMetadata = () => {
       view.executeJavaScript(`
         Promise.resolve({
@@ -183,11 +170,9 @@ const renameFolder = async (oldName: string, newName: string) => {
         ));
       });
     };
-
     view.addEventListener('page-title-updated', updateTabMetadata);
     view.addEventListener('did-navigate', updateTabMetadata);
     view.addEventListener('did-navigate-in-page', updateTabMetadata);
-
     return () => {
       view.removeEventListener('page-title-updated', updateTabMetadata);
       view.removeEventListener('did-navigate', updateTabMetadata);
@@ -204,7 +189,6 @@ const renameFolder = async (oldName: string, newName: string) => {
     <div className="h-screen w-screen flex bg-neutral-900 text-white font-sans">
       <Sidebar isOpen={sidebarOpen} toggle={() => setSidebarOpen(!sidebarOpen)} />
       <div className="flex-1 flex flex-col">
-        {/* Address Bar */}
         <div className="flex items-center gap-2 bg-gradient-to-r from-purple-800 to-indigo-900 p-2 shadow-md">
           <button onClick={goHome} className="px-2" title="Home">🏠</button>
           <button onClick={() => webviews[activeTabId]?.current?.goBack()} className="px-2">⟨</button>
@@ -223,12 +207,12 @@ const renameFolder = async (oldName: string, newName: string) => {
         <Tabs tabs={tabs} activeTabId={activeTabId} setActiveTabId={setActiveTabId} handleCloseTab={handleCloseTab} />
 
         <FavoritesBar
-  favorites={favorites}
-  onFavoriteClick={openFavorite}
-  onFolderDelete={deleteFolder}
-  onFolderRename={renameFolder}
-/>
-
+          favorites={favorites}
+          onFavoriteClick={openFavorite}
+          onFavoriteDelete={deleteFavorite}
+          onFolderRename={renameFolder}
+          onFolderDelete={deleteFolder}
+        />
 
         <div className="flex-1 relative">
           {tabs.map(tab => (
@@ -249,7 +233,6 @@ const renameFolder = async (oldName: string, newName: string) => {
         </div>
       </div>
 
-      {/* Folder Prompt Modal */}
       {showFolderPrompt && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
           <div className="bg-white text-black rounded p-4 w-96">
@@ -261,7 +244,7 @@ const renameFolder = async (oldName: string, newName: string) => {
               value={selectedFolder || ''}
             >
               <option value="">-- Choose a folder --</option>
-              {Object.keys(favorites).map(folder => (
+              {Object.keys(favorites).filter(f => f !== ' ').map(folder => (
                 <option key={folder} value={folder}>{folder}</option>
               ))}
             </select>

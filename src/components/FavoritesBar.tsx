@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 
 type Favorite = {
-  favicon: any;
+  favicon?: string;
   name: string;
   url: string;
 };
@@ -13,6 +14,7 @@ type FolderedFavorites = {
 type Props = {
   favorites: FolderedFavorites;
   onFavoriteClick: (url: string) => void;
+  onFavoriteDelete: (name: string, folder?: string) => void;
   onFolderRename: (oldName: string, newName: string) => void;
   onFolderDelete: (folderName: string) => void;
 };
@@ -20,53 +22,69 @@ type Props = {
 const FavoritesBar: React.FC<Props> = ({
   favorites,
   onFavoriteClick,
+  onFavoriteDelete,
   onFolderRename,
   onFolderDelete
 }) => {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; folder: string } | null>(
-    null
-  );
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number } | null>(null);
+  const [folderContext, setFolderContext] = useState<{ x: number; y: number; folder: string } | null>(null);
+  const [favoriteContext, setFavoriteContext] = useState<{ x: number; y: number; fav: Favorite; folder?: string } | null>(null);
   const [renamingFolder, setRenamingFolder] = useState<string | null>(null);
   const [renameInput, setRenameInput] = useState('');
 
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
-  const contextRef = useRef<HTMLUListElement | null>(null);
+  const barRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as Node;
-      if (dropdownRef.current && !dropdownRef.current.contains(target)) {
+      if (
+        !(e.target as HTMLElement).closest('.context-menu') &&
+        !(e.target as HTMLElement).closest('.dropdown-content')
+      ) {
         setActiveDropdown(null);
-      }
-      if (contextRef.current && !contextRef.current.contains(target)) {
-        setContextMenu(null);
+        setFolderContext(null);
+        setFavoriteContext(null);
       }
     };
+
     window.addEventListener('mousedown', handleClickOutside);
     return () => window.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleRightClick = (e: React.MouseEvent, folder: string) => {
+  const handleFolderClick = (
+    e: React.MouseEvent<HTMLButtonElement>,
+    folder: string
+  ) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setActiveDropdown(activeDropdown === folder ? null : folder);
+    setDropdownPos({ top: rect.bottom + 4, left: rect.left });
+  };
+
+  const handleFolderRightClick = (e: React.MouseEvent, folder: string) => {
     e.preventDefault();
-    setContextMenu({ x: e.clientX, y: e.clientY, folder });
+    setFolderContext({ x: e.clientX, y: e.clientY, folder });
+  };
+
+  const handleFavoriteRightClick = (e: React.MouseEvent, fav: Favorite, folder?: string) => {
+    e.preventDefault();
+    setFavoriteContext({ x: e.clientX, y: e.clientY, fav, folder });
+  };
+
+  const handleFolderDelete = () => {
+    if (folderContext) {
+      onFolderDelete(folderContext.folder);
+      setFolderContext(null);
+    }
   };
 
   const startRenaming = () => {
-    if (!contextMenu) return;
-    setRenameInput(contextMenu.folder);
-    setRenamingFolder(contextMenu.folder);
-    setContextMenu(null);
+    if (!folderContext) return;
+    setRenamingFolder(folderContext.folder);
+    setRenameInput(folderContext.folder);
+    setFolderContext(null);
   };
 
-  const handleDelete = () => {
-    if (contextMenu && window.confirm(`Delete folder "${contextMenu.folder}"?`)) {
-      onFolderDelete(contextMenu.folder);
-    }
-    setContextMenu(null);
-  };
-
-  const handleRenameConfirm = () => {
+  const confirmRename = () => {
     const trimmed = renameInput.trim();
     if (
       renamingFolder &&
@@ -79,92 +97,145 @@ const FavoritesBar: React.FC<Props> = ({
     setRenamingFolder(null);
   };
 
+  const handleFavoriteDelete = () => {
+    if (favoriteContext) {
+      onFavoriteDelete(favoriteContext.fav.name, favoriteContext.folder);
+      setFavoriteContext(null);
+    }
+  };
+
+  const portalRoot = document.getElementById('portal-root');
+
   return (
     <>
-      <div className="relative bg-neutral-900 px-4 py-2 flex gap-2">
-        {Object.entries(favorites).map(([folder, favs]) => (
-          <div key={folder} className="relative">
-            <button
-              onClick={() =>
-                setActiveDropdown(activeDropdown === folder ? null : folder)
-              }
-              onContextMenu={(e) => handleRightClick(e, folder)}
-              className={`px-4 py-1 rounded flex items-center gap-2 ${
-                activeDropdown === folder ? 'bg-yellow-600' : 'bg-neutral-800'
-              } hover:bg-neutral-700 text-white`}
-            >
-              📁{' '}
-              {renamingFolder === folder ? (
-                <input
-                  autoFocus
-                  value={renameInput}
-                  onChange={(e) => setRenameInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleRenameConfirm();
-                    if (e.key === 'Escape') setRenamingFolder(null);
-                  }}
-                  className="text-black px-1 py-0.5 rounded text-sm w-28"
-                  onClick={(e) => e.stopPropagation()}
-                />
-              ) : (
-                folder
-              )}
-            </button>
-
-            {activeDropdown === folder && (
-              <div
-                ref={dropdownRef}
-                className="absolute left-0 top-full mt-1 w-56 bg-white text-black rounded shadow-lg z-50"
-              >
-                {favs.map((fav, index) => (
-                  <div
-                    key={index}
-                    onClick={() => {
-                      onFavoriteClick(fav.url);
-                      setActiveDropdown(null);
-                    }}
-                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center gap-2"
-                    title={fav.url}
-                  >
-                    {fav.favicon && (
-                      <img
-                        src={fav.favicon}
-                        alt=""
-                        className="w-4 h-4"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                    )}
-                    {fav.name}
-                  </div>
-                ))}
-              </div>
-            )}
+      <div ref={barRef} className="relative bg-neutral-900 px-4 py-2 flex gap-2 overflow-x-auto z-40">
+        {/* Unfoldered Favorites */}
+        {favorites[' ']?.map((fav, idx) => (
+          <div
+            key={idx}
+            className="px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700 text-white flex items-center gap-2 cursor-pointer"
+            onClick={() => onFavoriteClick(fav.url)}
+            onContextMenu={(e) => handleFavoriteRightClick(e, fav)}
+            title={fav.name}
+          >
+            {fav.favicon && <img src={fav.favicon} className="w-4 h-4" alt="" />}
+            {fav.name}
           </div>
         ))}
+
+        {/* Folder Buttons */}
+        {Object.entries(favorites)
+          .filter(([key]) => key !== ' ')
+          .map(([folder, favs]) => (
+            <div key={folder} className="relative z-50">
+              <button
+                onClick={(e) => handleFolderClick(e, folder)}
+                onContextMenu={(e) => handleFolderRightClick(e, folder)}
+                className={`px-4 py-1 rounded flex items-center gap-2 ${
+                  activeDropdown === folder ? 'bg-yellow-600' : 'bg-neutral-800'
+                } hover:bg-neutral-700 text-white`}
+                title={folder}
+              >
+                📁{' '}
+                {renamingFolder === folder ? (
+                  <input
+                    autoFocus
+                    value={renameInput}
+                    onChange={(e) => setRenameInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') confirmRename();
+                      if (e.key === 'Escape') setRenamingFolder(null);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-black px-1 py-0.5 rounded text-sm w-28"
+                  />
+                ) : (
+                  folder
+                )}
+              </button>
+
+              {/* Folder Dropdown Portal */}
+              {activeDropdown === folder && portalRoot && dropdownPos &&
+                ReactDOM.createPortal(
+                  <div
+                    className="dropdown-content absolute bg-white text-black shadow-lg rounded w-56 max-h-80 overflow-y-auto z-[100]"
+                    style={{
+                      position: 'fixed',
+                      top: dropdownPos.top,
+                      left: dropdownPos.left
+                    }}
+                  >
+                    {favs.map((fav, index) => (
+                      <div
+                        key={index}
+                        onClick={() => {
+                          onFavoriteClick(fav.url);
+                          setActiveDropdown(null);
+                        }}
+                        onContextMenu={(e) => handleFavoriteRightClick(e, fav, folder)}
+                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center gap-2"
+                        title={fav.url}
+                      >
+                        {fav.favicon && (
+                          <img
+                            src={fav.favicon}
+                            alt=""
+                            className="w-4 h-4"
+                            onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')}
+                          />
+                        )}
+                        {fav.name}
+                      </div>
+                    ))}
+                  </div>,
+                  portalRoot
+                )}
+            </div>
+          ))}
       </div>
 
-      {contextMenu && (
+      {/* Folder Context Menu */}
+      {folderContext && (
         <ul
-          ref={contextRef}
           className="context-menu fixed z-50 bg-white text-black rounded shadow-md w-40"
-          style={{ top: contextMenu.y, left: contextMenu.x }}
+          style={{ top: folderContext.y, left: folderContext.x }}
         >
-          <li
-            className="px-4 py-2 hover:bg-gray-200 cursor-pointer"
-            onClick={startRenaming}
-          >
+          <li className="px-4 py-2 hover:bg-gray-200 cursor-pointer" onClick={startRenaming}>
             Rename Folder
           </li>
-          <li
-            className="px-4 py-2 hover:bg-red-100 text-red-600 cursor-pointer"
-            onClick={handleDelete}
-          >
+          <li className="px-4 py-2 hover:bg-red-100 text-red-600 cursor-pointer" onClick={handleFolderDelete}>
             Delete Folder
           </li>
         </ul>
       )}
+
+      {/* Favorite Context Menu */}
+{favoriteContext && (
+  <ul
+    className="context-menu fixed z-[200] bg-white text-black rounded shadow-md w-48"
+    style={{ top: favoriteContext.y, left: favoriteContext.x }}
+  >
+    <li className="px-4 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => onFavoriteClick(favoriteContext.fav.url)}>
+      Open in New Tab
+    </li>
+    <li
+      className="px-4 py-2 hover:bg-gray-200 cursor-pointer"
+      onClick={() => {
+        navigator.clipboard.writeText(favoriteContext.fav.url);
+        setFavoriteContext(null);
+      }}
+    >
+      Copy Link Address
+    </li>
+    <li className="px-4 py-2 hover:bg-red-100 text-red-600 cursor-pointer" onClick={() => {
+      onFavoriteDelete(favoriteContext.fav.name, favoriteContext.folder);
+      setFavoriteContext(null);
+    }}>
+      Delete Favorite
+    </li>
+  </ul>
+)}
+
     </>
   );
 };

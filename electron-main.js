@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, session } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, session, globalShortcut } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -286,6 +286,22 @@ app.whenReady().then(() => {
   initializeUserConfig();
   createWindow();
 
+  globalShortcut.register('CommandOrControl+T', () => {
+    BrowserWindow.getFocusedWindow()?.webContents.send('shortcut:new-tab');
+  });
+
+  globalShortcut.register('CommandOrControl+W', () => {
+    BrowserWindow.getFocusedWindow()?.webContents.send('shortcut:close-tab');
+  });
+
+  globalShortcut.register('CommandOrControl+Shift+T', () => {
+    BrowserWindow.getFocusedWindow()?.webContents.send('shortcut:reopen-tab');
+  });
+
+  globalShortcut.register('CommandOrControl+D', () => {
+    BrowserWindow.getFocusedWindow()?.webContents.send('shortcut:save-favorite');
+  });
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
@@ -293,4 +309,8 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
+
+  app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
+});
 });

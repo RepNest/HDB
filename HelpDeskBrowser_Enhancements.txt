@@ -1,0 +1,72 @@
+HelpDeskBrowser – Future Enhancements Plan
+=========================================
+
+🌟 UI/UX & Functional Improvements
+----------------------------------
+1. Drag-to-Reorder
+   - Reorder top-level favorites
+   - Reorder folders
+   - Persist order to user favorites JSON
+
+2. Pinned Folders
+   - Option to pin folders (appear before overflow)
+   - Toggle pin/unpin via folder context menu
+
+3. Favorites Overflow Enhancements
+   - Improve overflow display logic
+   - Show pinned folders before overflowed folders
+   - Improve spacing and collapse logic
+
+4. Folder Dropdown Behavior
+   - Support nested folders (future tier)
+   - Scrollable dropdown if > 7 favorites in folder
+   - Tooltip with full name on hover
+
+5. Folder Rename Validation
+   - Red border on invalid input (duplicate, empty)
+   - Show helpful validation messages
+
+6. Context Menu Improvements
+   - Ensure all options dismiss on click or Escape
+   - Add "Open in New Tab", "Copy Link Address" to all menus
+   - Add optional "Edit Favorite" function
+
+🛠 Data Management & Import/Export
+----------------------------------
+7. Phase 3: Settings Tab
+   - Homepage config
+   - Appearance toggle (light/dark)
+   - Clear browsing/user data
+
+8. Import/Export
+   - Export favorites to JSON
+   - Import favorites from Chrome and Edge
+   - Manual import via Settings screen
+
+9. Bookmark Folder Logic
+   - Add support for nested folders (v2+)
+   - Pin/unpin folders (prioritize in bar or overflow)
+   - Drag-to-reorder folders and save order
+
+🔒 Authentication & SSO
+------------------------
+10. Integrate with Windows EntraID/Azure SSO
+    - Auto-login using Windows session
+    - Share session with embedded webviews
+
+🧪 Misc Features & Experimental
+-------------------------------
+11. Extension Support (Phase 4+)
+    - Support CEF or Chromium extension compatibility
+
+12. Tab Session Saving (future)
+    - Restore tabs after app relaunch
+    - Allow manual save/load of tab groups
+
+13. Hotkeys & Shortcuts
+    - Chrome-style hotkeys: Ctrl+T, Ctrl+W, Ctrl+Shift+T
+    - Bookmark bar toggle hotkey
+
+14. Folder Management
+    - Edit folder icons/colors
+    - Right-click favorites to "Move to Folder..."

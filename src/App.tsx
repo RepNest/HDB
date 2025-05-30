@@ -24,14 +24,11 @@ type FolderedFavorites = {
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [tabs, setTabs] = useState<Tab[]>([
-    {
-      id: 1,
-      title: 'ITD Intra',
-      url: 'https://miamidadecounty.sharepoint.com/sites/ITD-Intra'
-    }
+    { id: 1, title: 'ITD Intra', url: 'https://miamidadecounty.sharepoint.com/sites/ITD-Intra' }
   ]);
   const [activeTabId, setActiveTabId] = useState(1);
   const [favorites, setFavorites] = useState<FolderedFavorites>({});
+  const [closedTabs, setClosedTabs] = useState<Tab[]>([]);
   const [showFolderPrompt, setShowFolderPrompt] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
@@ -64,9 +61,22 @@ export default function App() {
   };
 
   const handleCloseTab = (id: number) => {
+    const closedTab = tabs.find(t => t.id === id);
+    if (closedTab) setClosedTabs(prev => [...prev, closedTab]);
     const updated = tabs.filter(t => t.id !== id);
     setTabs(updated);
-    if (activeTabId === id && updated.length > 0) setActiveTabId(updated[0].id);
+    if (activeTabId === id && updated.length > 0) {
+      setActiveTabId(updated[updated.length - 1].id);
+    }
+  };
+
+  const handleReopenTab = () => {
+    if (closedTabs.length > 0) {
+      const last = closedTabs[closedTabs.length - 1];
+      setTabs(prev => [...prev, last]);
+      setActiveTabId(last.id);
+      setClosedTabs(prev => prev.slice(0, -1));
+    }
   };
 
   const navigate = () => {
@@ -149,6 +159,7 @@ export default function App() {
   useEffect(() => {
     const view = webviews[activeTabId]?.current;
     if (!view) return;
+
     const updateTabMetadata = () => {
       view.executeJavaScript(`
         Promise.resolve({
@@ -170,15 +181,86 @@ export default function App() {
         ));
       });
     };
+
     view.addEventListener('page-title-updated', updateTabMetadata);
     view.addEventListener('did-navigate', updateTabMetadata);
     view.addEventListener('did-navigate-in-page', updateTabMetadata);
+
     return () => {
       view.removeEventListener('page-title-updated', updateTabMetadata);
       view.removeEventListener('did-navigate', updateTabMetadata);
       view.removeEventListener('did-navigate-in-page', updateTabMetadata);
     };
   }, [activeTabId]);
+
+  useEffect(() => {
+    const handleHotkeyNewTab = () => handleNewTab();
+    const handleHotkeyCloseTab = () => handleCloseTab(activeTabId);
+    const handleHotkeyReopenTab = () => handleReopenTab();
+    const handleHotkeySaveFavorite = () => promptFavoriteSave();
+
+    window.addEventListener('shortcut:new-tab', handleHotkeyNewTab);
+    window.addEventListener('shortcut:close-tab', handleHotkeyCloseTab);
+    window.addEventListener('shortcut:reopen-tab', handleHotkeyReopenTab);
+    window.addEventListener('shortcut:save-favorite', handleHotkeySaveFavorite);
+
+    return () => {
+      window.removeEventListener('shortcut:new-tab', handleHotkeyNewTab);
+      window.removeEventListener('shortcut:close-tab', handleHotkeyCloseTab);
+      window.removeEventListener('shortcut:reopen-tab', handleHotkeyReopenTab);
+      window.removeEventListener('shortcut:save-favorite', handleHotkeySaveFavorite);
+    };
+  }, [tabs, activeTabId, closedTabs]);
+
+    useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore key presses inside inputs/textareas
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+      // Ctrl + R or F5: Reload tab
+      if ((e.ctrlKey && e.key === 'r') || e.key === 'F5') {
+        e.preventDefault();
+        webviews[activeTabId]?.current?.reload();
+      }
+
+      // Ctrl + Tab: Next tab
+      if (e.ctrlKey && !e.shiftKey && e.key === 'Tab') {
+        e.preventDefault();
+        const currentIndex = tabs.findIndex(t => t.id === activeTabId);
+        const nextIndex = (currentIndex + 1) % tabs.length;
+        setActiveTabId(tabs[nextIndex].id);
+      }
+
+      // Ctrl + Shift + Tab: Previous tab
+      if (e.ctrlKey && e.shiftKey && e.key === 'Tab') {
+        e.preventDefault();
+        const currentIndex = tabs.findIndex(t => t.id === activeTabId);
+        const prevIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+        setActiveTabId(tabs[prevIndex].id);
+      }
+
+      // Ctrl + 1–9: Jump to tab
+      if (e.ctrlKey && /^[1-9]$/.test(e.key)) {
+        e.preventDefault();
+        const tabIndex = parseInt(e.key, 10) - 1;
+        if (tabIndex < tabs.length) {
+          setActiveTabId(tabs[tabIndex].id);
+        }
+      }
+
+      // Escape: Dismiss folder prompt or context menus
+      if (e.key === 'Escape') {
+        setShowFolderPrompt(false);
+        const openMenus = document.querySelectorAll('.context-menu');
+        openMenus.forEach(menu => menu.remove());
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [tabs, activeTabId, webviews]);
+
 
   const goHome = () => {
     const homepage = 'https://miamidadecounty.sharepoint.com/sites/ITServiceDesk';

@@ -45,3 +45,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   onNewTab: (callback) => ipcRenderer.on('open-new-tab', (_, url) => callback(url))
 });
+
+ipcRenderer.on('shortcut:new-tab', () => {
+  window.dispatchEvent(new CustomEvent('shortcut:new-tab'));
+});
+
+ipcRenderer.on('shortcut:close-tab', () => {
+  window.dispatchEvent(new CustomEvent('shortcut:close-tab'));
+});
+
+ipcRenderer.on('shortcut:reopen-tab', () => {
+  window.dispatchEvent(new CustomEvent('shortcut:reopen-tab'));
+});
+
+ipcRenderer.on('shortcut:save-favorite', () => {
+  window.dispatchEvent(new CustomEvent('shortcut:save-favorite'));
+});

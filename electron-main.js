@@ -2,7 +2,8 @@ const { app, BrowserWindow, ipcMain, Menu, session, globalShortcut } = require('
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const { exec } = require('child_process');
+const { spawn } = require('child_process');
+
 
 // Proxy + Auth settings
 app.commandLine.appendSwitch('auth-server-whitelist', '*.miamidade.gov,*.sharepoint.com');
@@ -213,7 +214,31 @@ ipcMain.handle('get-user-config', async () => {
 
 
 ipcMain.handle('launch-app', async (_, cmd) => {
-  exec(cmd);
+  try {
+    const match = cmd.match(/^"(.+?)"(.*)$/);
+
+    if (match) {
+      const exePath = match[1];
+      const args = match[2].trim().split(/\s+/).filter(Boolean);
+
+      spawn(exePath, args, {
+        cwd: path.dirname(exePath),
+        detached: true,
+        stdio: 'ignore',
+        windowsHide: true
+      }).unref();
+    } else {
+      // Fallback to shell for commands like .lnk, PowerShell scripts, or complex strings
+      spawn('cmd', ['/c', cmd], {
+        shell: true,
+        detached: true,
+        stdio: 'ignore',
+        windowsHide: true
+      }).unref();
+    }
+  } catch (err) {
+    console.error('🚨 Failed to launch app:', err.message);
+  }
 });
 
 // ipcMain.handle('save-favorites', async (_, updatedFavorites) => {

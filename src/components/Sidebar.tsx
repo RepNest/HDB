@@ -8,7 +8,9 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen, toggle }: SidebarProps) {
-  const [apps, setApps] = useState<{ name: string; command: string }[]>([]);
+  const [apps, setApps] = useState<{
+    iconPath: string | undefined; name: string; command: string; icon?: string 
+}[]>([]);
   // const [favorites, setFavorites] = useState<{ name: string; url: string }[]>([]);
 
 useEffect(() => {
@@ -51,7 +53,11 @@ useEffect(() => {
           )}
           title={app.name}
         >
-          <span className="font-bold">{app.name[0]}</span>
+          {app.iconPath ? (
+            <img src={app.iconPath} alt={app.name} className="w-5 h-5 mr-2" />
+          ) : (
+            <span className="font-bold">{app.name[0]}</span>
+          )}
           {isOpen && <span className="ml-2 truncate">{app.name}</span>}
         </button>
       ))}

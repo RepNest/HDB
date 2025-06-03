@@ -3,11 +3,18 @@
   "apps": [
     {
       "name": "Notepad",
-      "command": "notepad.exe"
+      "command": "notepad.exe", 
+       "icon": "📝"
     },
     {
       "name": "Calculator",
-      "command": "calc.exe"
+      "command": "calc.exe",
+      "icon": "🧮"
+    },
+    {
+      "name": "Active Directory",
+      "command": "C:\\Scripts\\Shortcuts\\Launch ADUC.lnk", 
+       "icon": "📝"
     }
   ],
   "favorites": {

@@ -185,10 +185,13 @@ ipcMain.handle('get-user-config', async () => {
     const raw = fs.readFileSync(USER_CONFIG_PATH, 'utf-8');
     const config = JSON.parse(raw);
 
-    // Only auto-upgrade if favorites is a flat array (legacy)
+    // Auto-upgrade if needed
     if (Array.isArray(config.favorites)) {
       config.favorites = { Unsorted: config.favorites };
-      fs.writeFileSync(USER_CONFIG_PATH, JSON.stringify(config, null, 2));
+    }
+
+    if (!Array.isArray(config.history)) {
+      config.history = []; // Ensure valid default
     }
 
     return config;
@@ -198,10 +201,12 @@ ipcMain.handle('get-user-config', async () => {
       sidebarCollapsed: false,
       apps: [],
       favorites: {},
+      history: [], // 🧠 Return empty history fallback
       createdAt: new Date().toISOString()
     };
   }
 });
+
 
 
 
@@ -259,6 +264,34 @@ ipcMain.handle('save-favorites', async (_, updatedFavorites) => {
     return false;
   }
 });
+
+ipcMain.handle('save-history', async (_, url) => {
+  try {
+    const config = JSON.parse(fs.readFileSync(USER_CONFIG_PATH, 'utf-8'));
+    if (!config.history) config.history = [];
+
+    const timestamp = new Date().toISOString();
+    config.history.unshift({ url, timestamp });
+    config.history = config.history.slice(0, 1000); // limit to 1000 entries
+
+    fs.writeFileSync(USER_CONFIG_PATH, JSON.stringify(config, null, 2));
+    return true;
+  } catch (err) {
+    console.error('❌ Failed to save history entry:', err.message);
+    return false;
+  }
+});
+
+ipcMain.handle('get-history', async () => {
+  try {
+    const config = JSON.parse(fs.readFileSync(USER_CONFIG_PATH, 'utf-8'));
+    return config.history || [];
+  } catch (err) {
+    console.error('❌ Failed to load history:', err.message);
+    return [];
+  }
+});
+
 
 
 // Proxy resolution test

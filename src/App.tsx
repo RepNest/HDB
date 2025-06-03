@@ -21,6 +21,11 @@ type FolderedFavorites = {
   [folder: string]: Favorite[];
 };
 
+type HistoryEntry = {
+  url: string;
+  timestamp: number;
+};
+
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [tabs, setTabs] = useState<Tab[]>([
@@ -32,6 +37,9 @@ export default function App() {
   const [showFolderPrompt, setShowFolderPrompt] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+  const [browserHistory, setBrowserHistory] = useState<HistoryEntry[]>([]);
+  const [showHistoryDropdown, setShowHistoryDropdown] = useState(false);
+  const [filteredHistory, setFilteredHistory] = useState<HistoryEntry[]>([]);
 
   const addressInput = useRef<HTMLInputElement>(null);
   const webviews: Record<number, React.RefObject<any>> = {};
@@ -50,6 +58,7 @@ export default function App() {
   useEffect(() => {
     window.electronAPI.getConfig?.().then(config => {
       setFavorites(config?.favorites || {});
+      setBrowserHistory(config?.history || []);
     });
   }, []);
 
@@ -86,11 +95,35 @@ export default function App() {
     if (!url.startsWith('http') && isLikelyUrl) url = 'https://' + url;
     if (!isLikelyUrl) url = `https://www.google.com/search?q=${encodeURIComponent(url)}`;
     setTabs(tabs.map(tab => (tab.id === activeTabId ? { ...tab, url } : tab)));
+    saveHistory(url);
   };
 
   const handleEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') navigate();
   };
+
+  const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const value = e.target.value.toLowerCase();
+
+  if (value.trim() === '') {
+    const recent = browserHistory
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 8);
+    setFilteredHistory(recent);
+    setShowHistoryDropdown(true);
+    return;
+  }
+
+  const filtered = browserHistory
+    .filter(entry => entry.url.toLowerCase().includes(value))
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .slice(0, 8);
+
+  setFilteredHistory(filtered);
+  setShowHistoryDropdown(true);
+};
+
+
 
   const openFavorite = (url: string) => {
     const newId = Date.now();
@@ -118,6 +151,15 @@ export default function App() {
     setShowFolderPrompt(false);
     setNewFolderName('');
     setSelectedFolder(null);
+  };
+
+    const saveHistory = async (url: string) => {
+    if (!url) return;
+    const exists = browserHistory.some(entry => entry.url === url);
+    if (exists) return;
+    const updated = [...browserHistory, { url, timestamp: Date.now() }];
+    setBrowserHistory(updated);
+    await window.electronAPI.saveHistory?.(updated); // Make sure this is exposed in preload.js
   };
 
   const getFaviconFromURL = (url: string) => {
@@ -252,6 +294,15 @@ export default function App() {
       // Escape: Dismiss folder prompt or context menus
       if (e.key === 'Escape') {
         setShowFolderPrompt(false);
+        setShowHistoryDropdown(false);
+
+        // Restore current tab URL if address bar is empty
+        if (document.activeElement === addressInput.current && addressInput.current?.value === '') {
+          if (activeTab?.url) {
+            addressInput.current.value = activeTab.url;
+          }
+        }
+
         const openMenus = document.querySelectorAll('.context-menu');
         openMenus.forEach(menu => menu.remove());
       }
@@ -280,8 +331,42 @@ export default function App() {
             ref={addressInput}
             defaultValue={activeTab?.url}
             onKeyDown={handleEnter}
+            onChange={handleAddressChange}
+            onFocus={() => {
+              const recent = browserHistory
+                .sort((a, b) => b.timestamp - a.timestamp)
+                .slice(0, 8);
+              setFilteredHistory(recent);
+              setShowHistoryDropdown(true);
+            }}
+            onBlur={() => setTimeout(() => setShowHistoryDropdown(false), 200)}
             className="flex-1 px-3 py-1 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
           />
+
+          {showHistoryDropdown && (
+            <div className="absolute top-14 left-48 right-4 z-50 bg-white text-black shadow-md rounded max-h-64 overflow-y-auto">
+              {filteredHistory.length === 0 ? (
+                <div className="p-2 text-sm text-gray-600">No recent history</div>
+              ) : (
+                filteredHistory.map((entry, i) => (
+                  <div
+                    key={i}
+                    onMouseDown={() => {
+                      if (addressInput.current) {
+                        addressInput.current.value = entry.url;
+                        navigate();
+                        setShowHistoryDropdown(false);
+                      }
+                    }}
+                    className="px-3 py-2 hover:bg-gray-200 cursor-pointer text-sm truncate"
+                  >
+                    {entry.url}
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
           <button onClick={promptFavoriteSave} className="px-2 py-1 bg-yellow-500 text-black rounded hover:bg-yellow-400" title="Add to Favorites">⭐</button>
           <button onClick={handleNewTab} className="px-2 py-1 bg-pink-600 rounded hover:bg-pink-500">➕</button>
         </div>

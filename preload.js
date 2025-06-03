@@ -39,6 +39,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getConfig: () => ipcRenderer.invoke('get-user-config'),
   saveFavorites: (favorites) => ipcRenderer.invoke('save-favorites', favorites),
   showContextMenu: (options) => ipcRenderer.invoke('show-context-menu', options),
+  saveHistory: (url) => ipcRenderer.invoke('save-history', url),
+  getHistory: () => ipcRenderer.invoke('get-history'),
   ipc: {
     on: (channel, fn) => ipcRenderer.on(channel, (_, ...args) => fn(...args)),
     off: (channel, fn) => ipcRenderer.removeListener(channel, fn)

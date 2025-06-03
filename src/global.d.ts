@@ -3,6 +3,7 @@ export {};
 declare global {
   interface Window {
     electronAPI: {
+      getHistory(): unknown;
       getConfig(): Promise<{
         sidebarCollapsed: boolean;
         favorites: { name: string; url: string }[];

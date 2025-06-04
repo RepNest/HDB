@@ -4,6 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const { spawn } = require('child_process');
 
+
 // Proxy and Auth
 app.commandLine.appendSwitch('auth-server-whitelist', '*.miamidade.gov,*.sharepoint.com');
 app.commandLine.appendSwitch('auth-negotiate-delegate-whitelist', '*.miamidade.gov,*.sharepoint.com');
@@ -68,13 +69,15 @@ function createWindow() {
       webviewTag: true,
       sandbox: false,
       webSecurity: false,
-      partition: 'persist:shared',
+      session: sharedSession, // ✅ Reuse session
+      partition: 'persist:shared', // optional since session is set
       plugins: true
     }
   });
 
   win.loadFile('dist/index.html');
 }
+
 
 // Web Contents Events
 app.on('web-contents-created', (_event, contents) => {
@@ -170,8 +173,8 @@ app.on('web-contents-created', (_event, contents) => {
 
 
   // Modern window.open() handler
-contents.setWindowOpenHandler(({ url }) => {
-  const sharedSession = session.fromPartition('persist:shared'); // ✅ Use the correct shared session
+  contents.setWindowOpenHandler(({ url }) => {
+  const parentSession = contents.session; // ✅ get session from the parent webContents
 
   const popup = new BrowserWindow({
     width: 1000,
@@ -184,13 +187,13 @@ contents.setWindowOpenHandler(({ url }) => {
       nodeIntegration: false,
       webviewTag: true,
       sandbox: false,
-      session: sharedSession, // ✅ This ensures it uses the same cookies, auth, etc.
+      session: parentSession, // ✅ use same session (not just by partition string)
       webSecurity: false
     }
   });
 
   popup.loadURL(url);
-  return { action: 'deny' };
+  return { action: 'deny' }; // prevent default Electron popup
 });
 
 });
@@ -301,7 +304,12 @@ ipcMain.handle('launch-app', async (_, cmd) => {
 });
 
 // App lifecycle
+
+let sharedSession;
+
 app.whenReady().then(() => {
+  sharedSession = session.fromPartition('persist:shared');
+
   initializeUserConfig();
   createWindow();
 

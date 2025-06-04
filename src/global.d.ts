@@ -3,8 +3,10 @@ export {};
 declare global {
   interface Window {
     electronAPI: {
+      saveHistory(updated: { url: string; timestamp: string; }[]): unknown;
       getHistory(): unknown;
       getConfig(): Promise<{
+        history: never[];
         sidebarCollapsed: boolean;
         favorites: { name: string; url: string }[];
         apps: { name: string; command: string }[];

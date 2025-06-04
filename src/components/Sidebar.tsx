@@ -27,11 +27,18 @@ useEffect(() => {
 }, []);
 
   const launchApp = (cmd: string) => {
+  const isURL = /^https?:\/\//i.test(cmd);
+  if (isURL) {
+    const event = new CustomEvent('open-tab', { detail: { url: cmd } });
+    window.dispatchEvent(event);
+  } else {
     window.electronAPI?.launchApp(cmd);
-  };
+  }
+};
+
 
   const openInTab = (url: string) => {
-    const event = new CustomEvent('open-tab', { detail: { url } });
+  const event = new CustomEvent('open-tab', { detail: { url } });
     window.dispatchEvent(event);
   };
 

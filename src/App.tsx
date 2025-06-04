@@ -23,7 +23,7 @@ type FolderedFavorites = {
 
 type HistoryEntry = {
   url: string;
-  timestamp: number;
+  timestamp: string;
 };
 
 export default function App() {
@@ -56,11 +56,20 @@ export default function App() {
   }, [activeTabId]);
 
   useEffect(() => {
-    window.electronAPI.getConfig?.().then(config => {
-      setFavorites(config?.favorites || {});
-      setBrowserHistory(config?.history || []);
-    });
-  }, []);
+  window.electronAPI.getConfig?.().then(config => {
+    const history = Array.isArray(config?.history)
+  ? config.history.filter(h =>
+      typeof h === 'object' &&
+      typeof h.url === 'string' &&
+      typeof h.timestamp === 'string'
+    )
+  : [];
+
+
+    setFavorites(config?.favorites || {});
+    setBrowserHistory(history);
+  });
+}, []);
 
   const handleNewTab = () => {
     const newId = Date.now();
@@ -106,13 +115,18 @@ export default function App() {
   const value = e.target.value.toLowerCase();
 
   if (value.trim() === '') {
-    const recent = browserHistory
-      .sort((a, b) => b.timestamp - a.timestamp)
+  if (Array.isArray(browserHistory)) {
+    const recent = [...browserHistory]
+      .sort((a, b) =>
+  new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+)
       .slice(0, 8);
     setFilteredHistory(recent);
-    setShowHistoryDropdown(true);
-    return;
   }
+  setShowHistoryDropdown(true);
+  return;
+}
+
 
   const filtered = browserHistory
     .filter(entry => entry.url.toLowerCase().includes(value))
@@ -153,14 +167,90 @@ export default function App() {
     setSelectedFolder(null);
   };
 
-    const saveHistory = async (url: string) => {
-    if (!url) return;
-    const exists = browserHistory.some(entry => entry.url === url);
+   const saveHistory = async (url: string) => {
+  try {
+    if (!url || url === 'about:blank') return;
+
+    // Normalize and validate the URL
+    let validUrl = url.trim();
+
+    // If it's a plain search term (e.g. no dots or schema), it's probably a Google search
+    const isLikelyUrl = validUrl.includes('.') && !validUrl.includes(' ');
+    if (!validUrl.startsWith('http') && isLikelyUrl) {
+      validUrl = 'https://' + validUrl;
+    } else if (!validUrl.startsWith('http') && !isLikelyUrl) {
+      validUrl = `https://www.google.com/search?q=${encodeURIComponent(validUrl)}`;
+    }
+
+    // Ensure valid URL structure
+    new URL(validUrl); // This will throw if invalid
+
+    const exists = browserHistory.some(entry => entry.url === validUrl);
     if (exists) return;
-    const updated = [...browserHistory, { url, timestamp: Date.now() }];
+
+    const updated: HistoryEntry[] = [
+      ...browserHistory,
+      { url: validUrl, timestamp: new Date().toISOString() }
+    ];
+
     setBrowserHistory(updated);
-    await window.electronAPI.saveHistory?.(updated); // Make sure this is exposed in preload.js
+    await window.electronAPI.saveHistory?.(updated);
+  } catch (err) {
+    console.error('🚨 Failed to save history entry:', url, err.message);
+  }
+};
+
+
+useEffect(() => {
+  const handleOpenTab = (e: Event) => {
+    const customEvent = e as CustomEvent;
+    const url = customEvent.detail?.url;
+    if (!url) return;
+
+    const newId = Date.now();
+    const newTab = { id: newId, title: 'New Tab', url };
+
+    setTabs(prev => [...prev, newTab]);
+    setActiveTabId(newId);
+    saveHistory(url);
+
+    // Delay to allow the <webview> to mount
+    setTimeout(() => {
+      const view = webviews[newId]?.current;
+      if (!view) return;
+
+      view.addEventListener('did-finish-load', () => {
+        view.executeJavaScript(`
+          Promise.resolve({
+            title: document.title,
+            favicon: (() => {
+              const link = document.querySelector("link[rel~='icon']");
+              return link ? link.href : null;
+            })()
+          });
+        `).then((result: any) => {
+          setTabs(prevTabs =>
+            prevTabs.map(tab =>
+              tab.id === newId
+                ? {
+                    ...tab,
+                    title: result.title || tab.title,
+                    favicon: result.favicon || tab.favicon,
+                  }
+                : tab
+            )
+          );
+        });
+      });
+    }, 300);
   };
+
+  window.addEventListener('open-tab', handleOpenTab);
+  return () => window.removeEventListener('open-tab', handleOpenTab);
+}, []);
+
+
+
 
   const getFaviconFromURL = (url: string) => {
     try {
@@ -333,37 +423,44 @@ export default function App() {
             onKeyDown={handleEnter}
             onChange={handleAddressChange}
             onFocus={() => {
-              const recent = browserHistory
-                .sort((a, b) => b.timestamp - a.timestamp)
-                .slice(0, 8);
-              setFilteredHistory(recent);
-              setShowHistoryDropdown(true);
-            }}
+            if (!Array.isArray(browserHistory)) return;
+
+            const recent = [...browserHistory]
+              .sort((a, b) =>
+  new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+)
+              .slice(0, 8);
+
+            setFilteredHistory(recent);
+            setShowHistoryDropdown(true);
+          }}
+
             onBlur={() => setTimeout(() => setShowHistoryDropdown(false), 200)}
             className="flex-1 px-3 py-1 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
           />
 
           {showHistoryDropdown && (
             <div className="absolute top-14 left-48 right-4 z-50 bg-white text-black shadow-md rounded max-h-64 overflow-y-auto">
-              {filteredHistory.length === 0 ? (
-                <div className="p-2 text-sm text-gray-600">No recent history</div>
-              ) : (
-                filteredHistory.map((entry, i) => (
-                  <div
-                    key={i}
-                    onMouseDown={() => {
-                      if (addressInput.current) {
-                        addressInput.current.value = entry.url;
-                        navigate();
-                        setShowHistoryDropdown(false);
-                      }
-                    }}
-                    className="px-3 py-2 hover:bg-gray-200 cursor-pointer text-sm truncate"
-                  >
-                    {entry.url}
-                  </div>
-                ))
-              )}
+              {Array.isArray(filteredHistory) && filteredHistory.length === 0 ? (
+  <div className="p-2 text-sm text-gray-600">No recent history</div>
+) : (
+  Array.isArray(filteredHistory) && filteredHistory.map((entry, i) => (
+    <div
+      key={i}
+      onMouseDown={() => {
+        if (addressInput.current) {
+          addressInput.current.value = entry.url;
+          navigate();
+          setShowHistoryDropdown(false);
+        }
+      }}
+      className="px-3 py-2 hover:bg-gray-200 cursor-pointer text-sm truncate"
+    >
+      {entry.url}
+    </div>
+  ))
+)}
+
             </div>
           )}
 
@@ -387,6 +484,8 @@ export default function App() {
               key={tab.id}
               ref={webviews[tab.id]}
               src={tab.url}
+              allowpopups="true"
+              webpreferences="nativeWindowOpen=yes, contextIsolation=true"
               style={{
                 width: '100%',
                 height: '100%',

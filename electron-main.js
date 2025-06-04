@@ -4,55 +4,59 @@ const fs = require('fs');
 const os = require('os');
 const { spawn } = require('child_process');
 
-
-// Proxy + Auth settings
+// Proxy and Auth
 app.commandLine.appendSwitch('auth-server-whitelist', '*.miamidade.gov,*.sharepoint.com');
 app.commandLine.appendSwitch('auth-negotiate-delegate-whitelist', '*.miamidade.gov,*.sharepoint.com');
 app.commandLine.appendSwitch('auth-schemes', 'ntlm,negotiate,basic');
 app.commandLine.appendSwitch('proxy-auto-detect');
-app.commandLine.appendSwitch('enable-features', 'AllowInsecurePrivateNetworkRequests');
-
-// Set custom userData directory
-app.setPath('userData', path.join(os.homedir(), 'AppData', 'Roaming', 'HelpDeskBrowser'));
+app.commandLine.appendSwitch('enable-features', 'PDFViewerUpdate'); //,AllowInsecurePrivateNetworkRequests
 
 // Config paths
+app.setPath('userData', path.join(os.homedir(), 'AppData', 'Roaming', 'HelpDeskBrowser'));
 const CONFIG_DIR = path.join(app.getPath('userData'), 'configs');
 const USERNAME = os.userInfo().username.toLowerCase();
 const USER_CONFIG_PATH = path.join(CONFIG_DIR, `${USERNAME}.json`);
 const DEFAULT_CONFIG_PATH = path.join(__dirname, 'src', 'default-config.json');
 
-let userConfig = {};
+// Reusable Config Functions
+function readConfig() {
+  if (!fs.existsSync(USER_CONFIG_PATH)) return {};
+  return JSON.parse(fs.readFileSync(USER_CONFIG_PATH, 'utf-8'));
+}
 
+function writeConfig(data) {
+  fs.writeFileSync(USER_CONFIG_PATH, JSON.stringify(data, null, 2));
+}
+
+// Initialize User Config
 function initializeUserConfig() {
   if (!fs.existsSync(CONFIG_DIR)) fs.mkdirSync(CONFIG_DIR, { recursive: true });
-
   const defaultConfig = JSON.parse(fs.readFileSync(DEFAULT_CONFIG_PATH, 'utf-8'));
 
   if (!fs.existsSync(USER_CONFIG_PATH)) {
-    userConfig = { ...defaultConfig, createdAt: new Date().toISOString() };
-    fs.writeFileSync(USER_CONFIG_PATH, JSON.stringify(userConfig, null, 2));
+    const newConfig = { ...defaultConfig, createdAt: new Date().toISOString() };
+    writeConfig(newConfig);
   } else {
-    userConfig = JSON.parse(fs.readFileSync(USER_CONFIG_PATH, 'utf-8'));
+    const current = readConfig();
     let changed = false;
 
     ['apps', 'favorites', 'sidebarCollapsed'].forEach(key => {
-      if (!(key in userConfig)) {
-        userConfig[key] = defaultConfig[key];
+      if (!(key in current)) {
+        current[key] = defaultConfig[key];
         changed = true;
       }
     });
 
-    if (!userConfig.createdAt) {
-      userConfig.createdAt = new Date().toISOString();
+    if (!current.createdAt) {
+      current.createdAt = new Date().toISOString();
       changed = true;
     }
 
-    if (changed) {
-      fs.writeFileSync(USER_CONFIG_PATH, JSON.stringify(userConfig, null, 2));
-    }
+    if (changed) writeConfig(current);
   }
 }
 
+// Create Window
 function createWindow() {
   const win = new BrowserWindow({
     width: 1400,
@@ -64,44 +68,35 @@ function createWindow() {
       webviewTag: true,
       sandbox: false,
       webSecurity: false,
-      partition: 'persist:shared' // all windows share this partition/session
+      partition: 'persist:shared',
+      plugins: true
     }
   });
 
   win.loadFile('dist/index.html');
 }
 
-app.on('web-contents-created', (event, contents) => {
-  contents.on('context-menu', (e, params) => {
+// Web Contents Events
+app.on('web-contents-created', (_event, contents) => {
+  // Context menu setup (leave this unchanged)
+  contents.on('context-menu', (_e, params) => {
     const template = [];
 
     if (params.linkURL) {
       template.push(
-        {
-          label: 'Open Link in New Tab',
-          click: () => contents.send('open-new-tab', params.linkURL)
-        },
-        {
-          label: 'Copy Link Address',
-          click: () => require('electron').clipboard.writeText(params.linkURL)
-        }
+        { label: 'Open Link in New Tab', click: () => contents.send('open-new-tab', params.linkURL) },
+        { label: 'Copy Link Address', click: () => require('electron').clipboard.writeText(params.linkURL) }
       );
     }
 
     if (params.srcURL && params.mediaType === 'image') {
-      template.push({
-        label: 'Save Image As...',
-        click: () => require('electron').shell.openExternal(params.srcURL)
-      });
+      template.push({ label: 'Save Image As...', click: () => require('electron').shell.openExternal(params.srcURL) });
     }
 
     if (params.selectionText) {
       template.push({
         label: `Search Google for "${params.selectionText.slice(0, 25)}…"`,
-        click: () => {
-          const q = encodeURIComponent(params.selectionText);
-          require('electron').shell.openExternal(`https://www.google.com/search?q=${q}`);
-        }
+        click: () => require('electron').shell.openExternal(`https://www.google.com/search?q=${encodeURIComponent(params.selectionText)}`)
       });
     }
 
@@ -121,79 +116,43 @@ app.on('web-contents-created', (event, contents) => {
     menu.popup({ window: BrowserWindow.fromWebContents(contents) });
   });
 
-  contents.setWindowOpenHandler(({ url }) => {
-    const popup = new BrowserWindow({
-      width: 800,
-      height: 600,
-      webPreferences: {
-        preload: path.join(__dirname, 'preload.js'),
-        contextIsolation: true,
-        nodeIntegration: false,
-        webviewTag: true,
-        sandbox: false,
-        partition: 'persist:shared' // ⬅ retains auth/session
-      }
-    });
+  // Modern window.open() handler
+contents.setWindowOpenHandler(({ url }) => {
+  const sharedSession = session.fromPartition('persist:shared'); // ✅ Use the correct shared session
 
-    popup.loadURL(url);
-    return { action: 'deny' };
+  const popup = new BrowserWindow({
+    width: 1000,
+    height: 800,
+    parent: BrowserWindow.fromWebContents(contents),
+    modal: false,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      webviewTag: true,
+      sandbox: false,
+      session: sharedSession, // ✅ This ensures it uses the same cookies, auth, etc.
+      webSecurity: false
+    }
   });
+
+  popup.loadURL(url);
+  return { action: 'deny' };
 });
 
-// IPC handlers
-// ipcMain.handle('get-user-config', async () => {
-//   const data = fs.readFileSync(USER_CONFIG_PATH, 'utf-8');
-//   return JSON.parse(data);
-// });
-
-// ipcMain.handle('get-user-config', async () => {
-//   try {
-//     const data = fs.readFileSync(USER_CONFIG_PATH, 'utf-8');
-//     const config = JSON.parse(data);
-
-//     // 🛠 Auto-upgrade flat array of favorites to foldered format
-//     if (Array.isArray(config.favorites)) {
-//       config.favorites = { "Unsorted": config.favorites };
-//       fs.writeFileSync(USER_CONFIG_PATH, JSON.stringify(config, null, 2));
-//     }
-
-//     // 🧼 Fallback to empty structure if invalid
-//     if (
-//       typeof config.favorites !== 'object' ||
-//       config.favorites === null ||
-//       Array.isArray(config.favorites)
-//     ) {
-//       config.favorites = { "Unsorted": [] };
-//       fs.writeFileSync(USER_CONFIG_PATH, JSON.stringify(config, null, 2));
-//     }
-
-//     return config;
-//   } catch (err) {
-//     console.error('❌ Failed to load config:', err.message);
-//     return {
-//       sidebarCollapsed: false,
-//       apps: [],
-//       favorites: { "Unsorted": [] },
-//       createdAt: new Date().toISOString()
-//     };
-//   }
-// });
+});
 
 
-
+// IPC HANDLERS
 ipcMain.handle('get-user-config', async () => {
   try {
-    const raw = fs.readFileSync(USER_CONFIG_PATH, 'utf-8');
-    const config = JSON.parse(raw);
+    const config = readConfig();
 
-    // Auto-upgrade if needed
     if (Array.isArray(config.favorites)) {
       config.favorites = { Unsorted: config.favorites };
     }
 
-    if (!Array.isArray(config.history)) {
-      config.history = []; // Ensure valid default
-    }
+    if (!Array.isArray(config.history)) config.history = [];
 
     return config;
   } catch (err) {
@@ -202,87 +161,28 @@ ipcMain.handle('get-user-config', async () => {
       sidebarCollapsed: false,
       apps: [],
       favorites: {},
-      history: [], // 🧠 Return empty history fallback
+      history: [],
       createdAt: new Date().toISOString()
     };
   }
 });
 
-
-
-
-
-
-ipcMain.handle('launch-app', async (_, cmd) => {
-  try {
-    const match = cmd.match(/^"(.+?)"(.*)$/);
-
-    if (match) {
-      const exePath = match[1];
-      const args = match[2].trim().split(/\s+/).filter(Boolean);
-
-      spawn(exePath, args, {
-        cwd: path.dirname(exePath),
-        detached: true,
-        stdio: 'ignore',
-        windowsHide: true
-      }).unref();
-    } else {
-      // Fallback to shell for commands like .lnk, PowerShell scripts, or complex strings
-      spawn('cmd', ['/c', cmd], {
-        shell: true,
-        detached: true,
-        stdio: 'ignore',
-        windowsHide: true
-      }).unref();
-    }
-  } catch (err) {
-    console.error('🚨 Failed to launch app:', err.message);
-  }
-});
-
-// ipcMain.handle('save-favorites', async (_, updatedFavorites) => {
-//   try {
-//     const config = JSON.parse(fs.readFileSync(USER_CONFIG_PATH, 'utf-8'));
-//     config.favorites = updatedFavorites;
-//     fs.writeFileSync(USER_CONFIG_PATH, JSON.stringify(config, null, 2));
-//     return true;
-//   } catch (err) {
-//     console.error('Failed to save favorites:', err);
-//     return false;
-//   }
-// });
-
 ipcMain.handle('save-favorites', async (_, updatedFavorites) => {
   try {
-    // Validate structure: must be an object with folder names as keys
-    if (
-      typeof updatedFavorites !== 'object' ||
-      Array.isArray(updatedFavorites)
-    ) {
+    if (typeof updatedFavorites !== 'object' || Array.isArray(updatedFavorites)) {
       throw new Error('Favorites must be an object of folders');
     }
 
     for (const [folder, entries] of Object.entries(updatedFavorites)) {
-      if (!Array.isArray(entries)) {
-        throw new Error(`Favorites in "${folder}" must be an array`);
-      }
+      if (!Array.isArray(entries)) throw new Error(`Favorites in "${folder}" must be an array`);
       for (const fav of entries) {
-        if (typeof fav !== 'object' || !fav.name || !fav.url) {
-          throw new Error(`Invalid favorite in "${folder}": ${JSON.stringify(fav)}`);
-        }
+        if (!fav?.name || !fav?.url) throw new Error(`Invalid favorite in "${folder}"`);
       }
     }
 
-    // Read current config
-    const config = JSON.parse(fs.readFileSync(USER_CONFIG_PATH, 'utf-8'));
-
-    // Replace only the favorites
+    const config = readConfig();
     config.favorites = updatedFavorites;
-
-    // Save updated config
-    fs.writeFileSync(USER_CONFIG_PATH, JSON.stringify(config, null, 2));
-
+    writeConfig(config);
     return true;
   } catch (err) {
     console.error('❌ Failed to save favorites:', err.message);
@@ -290,26 +190,38 @@ ipcMain.handle('save-favorites', async (_, updatedFavorites) => {
   }
 });
 
-ipcMain.handle('save-history', async (_, url) => {
+ipcMain.handle('save-history', async (_, newHistory) => {
   try {
-    const config = JSON.parse(fs.readFileSync(USER_CONFIG_PATH, 'utf-8'));
-    if (!config.history) config.history = [];
+    const config = readConfig();
 
-    const timestamp = new Date().toISOString();
-    config.history.unshift({ url, timestamp });
-    config.history = config.history.slice(0, 1000); // limit to 1000 entries
+    // Flatten out entries if nested under `.url`
+    const flatHistory = [];
 
-    fs.writeFileSync(USER_CONFIG_PATH, JSON.stringify(config, null, 2));
-    return true;
+    if (Array.isArray(newHistory)) {
+      for (const entry of newHistory) {
+        if (Array.isArray(entry.url)) {
+          for (const subEntry of entry.url) {
+            if (typeof subEntry?.url === 'string' && typeof subEntry?.timestamp === 'string') {
+              flatHistory.push(subEntry);
+            }
+          }
+        } else if (typeof entry?.url === 'string' && typeof entry?.timestamp === 'string') {
+          flatHistory.push(entry);
+        }
+      }
+    }
+
+    config.history = flatHistory;
+    writeConfig(config);
   } catch (err) {
-    console.error('❌ Failed to save history entry:', err.message);
-    return false;
+    console.error('❌ Failed to save history:', err.message);
   }
 });
 
+
 ipcMain.handle('get-history', async () => {
   try {
-    const config = JSON.parse(fs.readFileSync(USER_CONFIG_PATH, 'utf-8'));
+    const config = readConfig();
     return config.history || [];
   } catch (err) {
     console.error('❌ Failed to load history:', err.message);
@@ -317,45 +229,42 @@ ipcMain.handle('get-history', async () => {
   }
 });
 
-
-
-// Proxy resolution test
-app.whenReady().then(() => {
-  session.defaultSession.resolveProxy('https://outlook.office.com').then(proxy => {
-    console.log('🧭 Proxy settings:', proxy);
-  });
-});
-
-// Auto-login for trusted domains (WIA)
-app.on('login', (event, webContents, request, authInfo, callback) => {
-  event.preventDefault();
-  if (authInfo.isProxy === false && /miamidade\.gov|sharepoint\.com/.test(authInfo.host)) {
-    console.log(`🔐 Attempting automatic login to ${authInfo.host}`);
-    callback('', '');
-  } else {
-    console.warn('🔐 Untrusted domain requested credentials:', authInfo.host);
+ipcMain.handle('launch-app', async (_, cmd) => {
+  try {
+    const match = cmd.match(/^"(.+?)"(.*)$/);
+    if (match) {
+      spawn(match[1], match[2].trim().split(/\s+/).filter(Boolean), {
+        cwd: path.dirname(match[1]),
+        detached: true,
+        stdio: 'ignore',
+        windowsHide: true
+      }).unref();
+    } else {
+      spawn('cmd', ['/c', cmd], { shell: true, detached: true, stdio: 'ignore', windowsHide: true }).unref();
+    }
+  } catch (err) {
+    console.error('🚨 Failed to launch app:', err.message);
   }
 });
 
-
-
-// Lifecycle
+// App lifecycle
 app.whenReady().then(() => {
   initializeUserConfig();
   createWindow();
 
+  session.defaultSession.resolveProxy('https://outlook.office.com').then(proxy => {
+    console.log('🧭 Proxy settings:', proxy);
+  });
+
   globalShortcut.register('CommandOrControl+T', () => {
     BrowserWindow.getFocusedWindow()?.webContents.send('shortcut:new-tab');
   });
-
   globalShortcut.register('CommandOrControl+W', () => {
     BrowserWindow.getFocusedWindow()?.webContents.send('shortcut:close-tab');
   });
-
   globalShortcut.register('CommandOrControl+Shift+T', () => {
     BrowserWindow.getFocusedWindow()?.webContents.send('shortcut:reopen-tab');
   });
-
   globalShortcut.register('CommandOrControl+D', () => {
     BrowserWindow.getFocusedWindow()?.webContents.send('shortcut:save-favorite');
   });
@@ -365,10 +274,20 @@ app.whenReady().then(() => {
   });
 });
 
+app.on('login', (event, webContents, request, authInfo, callback) => {
+  event.preventDefault();
+  if (!authInfo.isProxy && /miamidade\.gov|sharepoint\.com/.test(authInfo.host)) {
+    console.log(`🔐 Attempting automatic login to ${authInfo.host}`);
+    callback('', '');
+  } else {
+    console.warn('🔐 Untrusted domain requested credentials:', authInfo.host);
+  }
+});
+
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
-
-  app.on('will-quit', () => {
-  globalShortcut.unregisterAll();
 });
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
 });

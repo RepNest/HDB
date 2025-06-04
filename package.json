@@ -3,6 +3,13 @@
   "version": "1.0.0",
   "main": "electron-main.js",
   "build": {
+    "publish": [
+      {
+      "provider": "github",
+      "owner": "RepNest",
+      "repo": "HDB"
+      }
+    ],
     "appId": "com.helpdeskbrowser.app",
     "productName": "HelpDeskBrowser",
     "files": [
@@ -33,6 +40,7 @@
   },
   "dependencies": {
     "clsx": "^2.1.1",
+    "electron-updater": "^6.6.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

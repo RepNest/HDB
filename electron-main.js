@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { spawn } = require('child_process');
+const { autoUpdater } = require('electron-updater');
 
 
 // Proxy and Auth
@@ -311,6 +312,18 @@ ipcMain.handle('launch-app', async (_, cmd) => {
 let sharedSession;
 
 app.whenReady().then(() => {
+
+
+  autoUpdater.checkForUpdatesAndNotify();
+
+  autoUpdater.on('update-available', () => {
+    console.log('🚀 Update available.');
+  });
+
+  autoUpdater.on('update-downloaded', () => {
+    console.log('✅ Update downloaded. Will install on quit.');
+  });
+
   sharedSession = session.fromPartition('persist:shared');
 
   initializeUserConfig();

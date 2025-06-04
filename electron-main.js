@@ -75,7 +75,10 @@ function createWindow() {
     }
   });
 
-  win.loadFile('dist/index.html');
+  
+win.loadURL(`file://${path.join(__dirname, 'dist/index.html')}`);
+
+
 }
 
 

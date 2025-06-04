@@ -2,6 +2,28 @@
   "name": "helpdesk-browser",
   "version": "1.0.0",
   "main": "electron-main.js",
+  "build": {
+    "appId": "com.helpdeskbrowser.app",
+    "productName": "HelpDeskBrowser",
+    "files": [
+      "dist/**/*",
+      "electron-main.js",
+      "preload.js",
+      "assets/**/*",
+      "src/default-config.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",

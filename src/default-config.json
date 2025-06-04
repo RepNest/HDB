@@ -12,27 +12,27 @@
     {
       "name": "Active Directory",
       "command": "powershell.exe -ExecutionPolicy Bypass -File \"C:\\Scripts\\ADUC_Launcher.ps1\"",
-      "iconPath": "C:\\Devs\\HDB\\icons\\objsel_106-4.png"
+      "iconPath": "./icons/objsel_106-4.png"
     },
     {
       "name": "Mainframe",
       "command": "cmd /c \"C:\\Program Files (x86)\\MochaSoft\\Mocha TN3270 for Vista\\tn3270.exe\"",
-      "iconPath": "C:\\Devs\\HDB\\icons\\tn3270_32512.ico"
+      "iconPath": "./icons/tn3270_32512.ico"
     },
     {
       "name": "Lockout Status Tool",
       "command": "cmd /c \"C:\\Program Files (x86)\\Windows Resource Kits\\Tools\\lockoutstatus.exe\"",
-      "iconPath": "C:\\Devs\\HDB\\icons\\lockoutstatus_106.ico"
+      "iconPath": "./icons/lockoutstatus_106.ico"
     },
     {
       "name": "Teamviewer",
       "command": "\"C:\\Program Files\\TeamViewer\\TeamViewer.exe\"",
-      "iconPath": "C:\\Devs\\HDB\\icons\\TeamViewer_101.ico"
+      "iconPath": "./icons/TeamViewer_101.ico"
     },
     {
       "name": "CmRC Viewer",
       "command": "powershell.exe -ExecutionPolicy Bypass -File \"C:\\Scripts\\CMRC_Launcher.ps1\"",
-      "iconPath": "C:\\Devs\\HDB\\icons\\CmRCViewer_IDR_RCVIEWER.ico"
+      "iconPath": "./icons/CmRCViewer_IDR_RCVIEWER.ico"
     }
   ],
   "favorites": {

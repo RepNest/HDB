@@ -79,42 +79,95 @@ function createWindow() {
 // Web Contents Events
 app.on('web-contents-created', (_event, contents) => {
   // Context menu setup (leave this unchanged)
-  contents.on('context-menu', (_e, params) => {
-    const template = [];
+  contents.on('context-menu', (e, params) => {
+  const template = [];
 
-    if (params.linkURL) {
-      template.push(
-        { label: 'Open Link in New Tab', click: () => contents.send('open-new-tab', params.linkURL) },
-        { label: 'Copy Link Address', click: () => require('electron').clipboard.writeText(params.linkURL) }
-      );
-    }
-
-    if (params.srcURL && params.mediaType === 'image') {
-      template.push({ label: 'Save Image As...', click: () => require('electron').shell.openExternal(params.srcURL) });
-    }
-
-    if (params.selectionText) {
-      template.push({
-        label: `Search Google for "${params.selectionText.slice(0, 25)}…"`,
-        click: () => require('electron').shell.openExternal(`https://www.google.com/search?q=${encodeURIComponent(params.selectionText)}`)
-      });
-    }
-
-    if (template.length > 0) template.push({ type: 'separator' });
-
+  // Link-related options
+  if (params.linkURL) {
     template.push(
-      { role: 'cut', enabled: params.editFlags.canCut },
-      { role: 'copy', enabled: params.editFlags.canCopy },
-      { role: 'paste', enabled: params.editFlags.canPaste },
-      { type: 'separator' },
-      { role: 'selectAll' },
-      { type: 'separator' },
-      { label: 'Reload', click: () => contents.reload() }
+      {
+        label: 'Open Link in New Tab',
+        click: () => {
+          const window = BrowserWindow.getFocusedWindow();
+          if (window) {
+            window.webContents.send('open-new-tab', params.linkURL);
+          }
+        }
+      },
+      {
+        label: 'Copy Link Address',
+        click: () => require('electron').clipboard.writeText(params.linkURL)
+      }
     );
+  }
 
-    const menu = Menu.buildFromTemplate(template);
-    menu.popup({ window: BrowserWindow.fromWebContents(contents) });
+  // Image handling
+  if (params.srcURL && params.mediaType === 'image') {
+    template.push({
+      label: 'Save Image As...',
+      click: async () => {
+        const { dialog } = require('electron');
+        const https = require('https');
+        const fs = require('fs');
+        const path = require('path');
+
+        const win = BrowserWindow.getFocusedWindow();
+        if (!win) return;
+
+        const savePath = dialog.showSaveDialogSync(win, {
+          defaultPath: path.basename(params.srcURL),
+          filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'ico'] }]
+        });
+
+        if (savePath) {
+          https.get(params.srcURL, response => {
+            const file = fs.createWriteStream(savePath);
+            response.pipe(file);
+            file.on('finish', () => file.close());
+          }).on('error', err => {
+            console.error('❌ Failed to save image:', err.message);
+          });
+        }
+      }
+    });
+  }
+
+  // Search Google
+  if (params.selectionText) {
+    template.push({
+      label: `Search Google for "${params.selectionText.slice(0, 25)}…"`,
+
+      click: () => {
+        const q = encodeURIComponent(params.selectionText);
+        require('electron').shell.openExternal(`https://www.google.com/search?q=${q}`);
+      }
+    });
+  }
+
+  if (template.length > 0) template.push({ type: 'separator' });
+
+  // Clipboard/edit actions
+  template.push(
+    { role: 'cut', enabled: params.editFlags.canCut },
+    { role: 'copy', enabled: params.editFlags.canCopy },
+    { role: 'paste', enabled: params.editFlags.canPaste }
+  );
+
+  template.push({ type: 'separator' });
+  template.push({ role: 'selectAll' });
+
+  // 👇 Add "Inspect Element"
+  template.push({ type: 'separator' });
+  template.push({
+    label: 'Inspect Element',
+    click: () => contents.inspectElement(params.x, params.y)
   });
+
+  const menu = Menu.buildFromTemplate(template);
+  menu.popup({ window: BrowserWindow.fromWebContents(contents) });
+});
+
+
 
   // Modern window.open() handler
 contents.setWindowOpenHandler(({ url }) => {

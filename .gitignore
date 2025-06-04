@@ -1,0 +1,11 @@
+/dist
+/dist/assets
+/node_modules
+/node_modules
+node_modules/.package-lock.json
+dist/assets/index-MDiYie7h.css
+dist/assets/index-C4s5AIWG.js
+/node_modules
+/node_modules/@babel
+/node_modules/@babel/compat-data
+node_modules/@babel/compat-data/package.json

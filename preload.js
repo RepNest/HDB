@@ -3,6 +3,7 @@ const os = require('os');
 const fs = require('fs');
 const path = require('path');
 
+// Optional fallback config logic for hardening preload access
 const username = os.userInfo().username;
 const baseDir = path.join(process.env.APPDATA || '', 'HelpDeskBrowser');
 const configPath = path.join(baseDir, 'configs', `${username}.json`);
@@ -10,9 +11,10 @@ const defaultPath = path.join(baseDir, 'default-config.json');
 
 let config = {
   sidebarCollapsed: false,
-  favorites: [],
+  favorites: {},
   apps: [],
-  createdAt: new Date().toISOString()
+  createdAt: new Date().toISOString(),
+  history: []
 };
 
 try {
@@ -31,26 +33,72 @@ try {
     config = JSON.parse(raw);
   }
 } catch (err) {
-  console.warn('Failed to load or create config:', err.message);
+  console.warn('⚠ Failed to load or create config:', err.message);
 }
 
 contextBridge.exposeInMainWorld('electronAPI', {
   launchApp: (cmd) => ipcRenderer.invoke('launch-app', cmd),
-  getConfig: () => {
-    try {
-      return config && typeof config === 'object' ? config : {
-        sidebarCollapsed: false,
-        favorites: [],
-        apps: [],
-        createdAt: new Date().toISOString()
-      };
-    } catch {
-      return {
-        sidebarCollapsed: false,
-        favorites: [],
-        apps: [],
-        createdAt: new Date().toISOString()
-      };
+  getConfig: () => ipcRenderer.invoke('get-user-config'),
+  saveFavorites: (favorites) => {
+  if (
+    typeof favorites !== 'object' ||
+    Array.isArray(favorites)
+  ) {
+    console.warn('Favorites must be an object of folders');
+    return;
+  }
+
+  for (const folder in favorites) {
+    if (!Array.isArray(favorites[folder])) {
+      console.warn(`Folder "${folder}" must be an array of favorites`);
+      return;
+    }
+
+    for (const fav of favorites[folder]) {
+      if (!fav.name || !fav.url) {
+        console.warn(`Invalid favorite in folder "${folder}":`, fav);
+        return;
+      }
     }
   }
+
+  return ipcRenderer.invoke('save-favorites', favorites);
+},
+  saveHistory: (url) => ipcRenderer.invoke('save-history', url),
+  getHistory: () => ipcRenderer.invoke('get-history'),
+  ipc: {
+    on: (channel, fn) => ipcRenderer.on(channel, (_, ...args) => fn(...args)),
+    off: (channel, fn) => ipcRenderer.removeListener(channel, fn)
+  },
+  onNewTab: (callback) => ipcRenderer.on('open-new-tab', (_, url) => callback(url))
 });
+
+// Relay keyboard shortcut events
+ipcRenderer.on('shortcut:new-tab', () => {
+  window.dispatchEvent(new CustomEvent('shortcut:new-tab'));
+});
+
+ipcRenderer.on('shortcut:close-tab', () => {
+  window.dispatchEvent(new CustomEvent('shortcut:close-tab'));
+});
+
+ipcRenderer.on('shortcut:reopen-tab', () => {
+  window.dispatchEvent(new CustomEvent('shortcut:reopen-tab'));
+});
+
+ipcRenderer.on('shortcut:save-favorite', () => {
+  window.dispatchEvent(new CustomEvent('shortcut:save-favorite'));
+});
+
+// Relay window.open() requests as custom DOM events
+ipcRenderer.on('open-new-tab', (_, url) => {
+  console.log('[preload] Dispatching open-tab:', url); // ✅ Debug
+  window.dispatchEvent(new CustomEvent('open-tab', { detail: { url } }));
+});
+
+// Force all window.open calls to trigger tab creation instead of opening a new window
+window.open = function (url, frameName, features) {
+  console.log('[preload] Intercepted window.open → opening as tab:', url);
+  window.dispatchEvent(new CustomEvent('open-tab', { detail: { url } }));
+  return null; // Simulates blocked popup
+};

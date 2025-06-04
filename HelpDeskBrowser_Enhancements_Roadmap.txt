@@ -1,0 +1,58 @@
+HelpDeskBrowser - Future Enhancements Roadmap
+=============================================
+
+Phase 1 - Core Enhancements
+----------------------------
+- ✅ Foldered favorites with context menus (rename, delete, open in new tab, copy link)
+- ✅ Right-click support for favorites and folders
+- ✅ Portal-based dropdown menus for folder contents and overflow menu
+- ✅ Escape key and click-away dismissal for menus
+- ✅ Overflow handling using ">" button and dropdown
+
+Phase 2 - Remaining Essentials
+------------------------------
+- ⏳ Drag-to-reorder support for top-level favorites and folders
+- ⏳ Persistent saving of favorites after reordering
+- ⏳ UI polish for folder rename field (validation, border color, etc.)
+- ⏳ Truncation handling and title tooltips for long folder/favorite names
+
+Phase 3 - Import/Export & Config
+--------------------------------
+- ⏳ JSON import/export of favorites and settings
+- ⏳ Chrome/Edge bookmark importer
+- ⏳ "Clear All Favorites" and "Reset to Default" options in Settings
+
+Phase 4 - UI/UX & Smart Features
+-------------------------------
+- ⏳ Middle-click support (open in new tab / close tab)
+- ⏳ Inline renaming of favorites (not just folders)
+- ⏳ Search bar for quick favorite/folder filtering
+- ⏳ Highlight current favorite tab if matched
+- ⏳ Show tab favicons in overflow list and favorites bar
+- ⏳ Recently closed tabs list (with Ctrl+Shift+T support)
+
+Security & Settings
+-------------------
+- ⏳ Password-lock for sensitive folders
+- ⏳ Inactivity auto-logout / session timeout
+- ⏳ Settings panel (homepage, theme, font scaling)
+- ⏳ Encryption of stored favorites (local JSON)
+
+Customization Features
+----------------------
+- ⏳ Custom folder colors/icons
+- ⏳ Favorite favicon override picker
+- ⏳ Pinned tabs (open on launch)
+- ⏳ Bulk multi-select for favorites (delete, move, etc.)
+
+Performance & Monitoring
+------------------------
+- ⏳ Show tab resource usage (CPU/memory overlay)
+- ⏳ Lazy-load webviews only when tab becomes active
+
+Advanced / Future Ideas
+------------------------
+- ⏳ AI-assisted favorite suggestions or folder auto-organization
+- ⏳ Remote configuration sync for enterprise users
+- ⏳ Electron API console/dev tools
+- ⏳ Extension loader support (via CEF)

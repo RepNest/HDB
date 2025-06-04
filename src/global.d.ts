@@ -3,13 +3,33 @@ export {};
 declare global {
   interface Window {
     electronAPI: {
-      launchApp: (cmd: string) => void;
-      getConfig: () => {
+      saveHistory(updated: { url: string; timestamp: string; }[]): unknown;
+      getHistory(): unknown;
+      getConfig(): Promise<{
+        history: never[];
         sidebarCollapsed: boolean;
         favorites: { name: string; url: string }[];
         apps: { name: string; command: string }[];
         createdAt: string;
-      };
+      }>;
+      launchApp: (cmd: string) => void;
+      showContextMenu: () => void;
+      saveFavorite: (fav: { name: string; url: string }) => Promise<boolean>;
+      saveFavorites?: (favorites: { name: string; url: string }[]) => void;
     };
+  }
+
+  namespace JSX {
+    interface IntrinsicElements {
+      webview: React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLWebViewElement> & {
+          src?: string;
+          style?: React.CSSProperties;
+          ref?: React.RefObject<HTMLWebViewElement>;
+          onDidFinishLoad?: () => void;
+        },
+        HTMLWebViewElement
+      >;
+    }
   }
 }

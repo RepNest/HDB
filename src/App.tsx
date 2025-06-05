@@ -1,419 +1,167 @@
-// App.tsx
 import React, { useState, useRef, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import FavoritesBar from './components/FavoritesBar';
-import Tabs from './components/Tabs';
+import clsx from 'clsx';
 
-type Tab = {
-  id: number;
-  title: string;
-  url: string;
-  favicon?: string;
-};
-
-type Favorite = {
-  name: string;
-  url: string;
-  favicon?: string;
-};
-
-type FolderedFavorites = {
-  [folder: string]: Favorite[];
-};
-
-type HistoryEntry = {
-  url: string;
-  timestamp: string;
-};
+type Tab = { id: number; title: string; url: string; favicon?: string };
+type Favorite = { name: string; url: string; favicon?: string };
 
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [tabs, setTabs] = useState<Tab[]>([
-    { id: 1, title: 'ITD Intra', url: 'https://miamidadecounty.sharepoint.com/sites/ITD-Intra' }
+    { id: 1, title: 'ITD Intra', url: 'https://miamidadecounty.sharepoint.com/sites/ITD-Intra' },
   ]);
   const [activeTabId, setActiveTabId] = useState(1);
-  const [favorites, setFavorites] = useState<FolderedFavorites>({});
   const [closedTabs, setClosedTabs] = useState<Tab[]>([]);
-  const [showFolderPrompt, setShowFolderPrompt] = useState(false);
-  const [newFolderName, setNewFolderName] = useState('');
-  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
-  const [browserHistory, setBrowserHistory] = useState<HistoryEntry[]>([]);
-  const [showHistoryDropdown, setShowHistoryDropdown] = useState(false);
-  const [filteredHistory, setFilteredHistory] = useState<HistoryEntry[]>([]);
-
+  const [favorites, setFavorites] = useState<Favorite[]>([]);
   const addressInput = useRef<HTMLInputElement>(null);
   const webviews: Record<number, React.RefObject<any>> = {};
+
   tabs.forEach(tab => {
     if (!webviews[tab.id]) webviews[tab.id] = React.createRef();
   });
 
   const activeTab = tabs.find(t => t.id === activeTabId);
 
+  // Load favorites
   useEffect(() => {
-    if (addressInput.current && activeTab?.url) {
-      addressInput.current.value = activeTab.url;
-    }
-  }, [activeTabId]);
+    const loadFavorites = async () => {
+      const config = await window.electronAPI?.getConfig?.();
+      const loadedFavorites = config?.favorites;
+      if (loadedFavorites && typeof loadedFavorites === 'object') {
+        setFavorites(Object.values(loadedFavorites).flat());
+      } else {
+        setFavorites([]);
+      }
+    };
+    loadFavorites();
+  }, []);
 
-  useEffect(() => {
-  window.electronAPI.getConfig?.().then(config => {
-    const history = Array.isArray(config?.history)
-  ? config.history.filter(h =>
-      typeof h === 'object' &&
-      typeof h.url === 'string' &&
-      typeof h.timestamp === 'string'
-    )
-  : [];
-
-
-    setFavorites(config?.favorites || {});
-    setBrowserHistory(history);
-  });
-}, []);
-
-  const handleNewTab = () => {
+  const handleNewTab = (url: string = 'https://www.google.com') => {
     const newId = Date.now();
-    const newTab = { id: newId, title: 'New Tab', url: 'https://www.google.com' };
+    const newTab = { id: newId, title: url.startsWith('http') ? url : 'New Tab', url };
     setTabs(prev => [...prev, newTab]);
     setActiveTabId(newId);
   };
 
   const handleCloseTab = (id: number) => {
     const closedTab = tabs.find(t => t.id === id);
-    if (closedTab) setClosedTabs(prev => [...prev, closedTab]);
+    if (closedTab) {
+      setClosedTabs(prev => [closedTab, ...prev.slice(0, 9)]);
+    }
     const updated = tabs.filter(t => t.id !== id);
     setTabs(updated);
-    if (activeTabId === id && updated.length > 0) {
-      setActiveTabId(updated[updated.length - 1].id);
-    }
+    if (activeTabId === id && updated.length > 0) setActiveTabId(updated[0].id);
   };
 
   const handleReopenTab = () => {
-    if (closedTabs.length > 0) {
-      const last = closedTabs[closedTabs.length - 1];
-      setTabs(prev => [...prev, last]);
-      setActiveTabId(last.id);
-      setClosedTabs(prev => prev.slice(0, -1));
+    if (closedTabs.length === 0) return;
+    const [reopenedTab, ...remaining] = closedTabs;
+    setTabs([...tabs, reopenedTab]);
+    setActiveTabId(reopenedTab.id);
+    setClosedTabs(remaining);
+  };
+
+  const handleSaveFavorite = async () => {
+    const webview = webviews[activeTabId]?.current;
+    if (webview) {
+      const url = webview.getURL();
+      const title = await webview.executeJavaScript('document.title') || url;
+      const newFavorite: Favorite = { name: title, url, favicon: '⭐' };
+      const newFavorites = {
+        ...favorites,
+        ' ': [...(favorites[' '] || []), newFavorite],
+      };
+      if (window.electronAPI?.saveFavorites) {
+        await window.electronAPI.saveFavorites(newFavorites);
+        setFavorites(Object.values(newFavorites).flat());
+      }
     }
   };
 
   const navigate = () => {
     if (!addressInput.current) return;
-    let url = addressInput.current.value.trim();
-    const isLikelyUrl = url.includes('.') && !url.includes(' ');
-    if (!url.startsWith('http') && isLikelyUrl) url = 'https://' + url;
-    if (!isLikelyUrl) url = `https://www.google.com/search?q=${encodeURIComponent(url)}`;
-    setTabs(tabs.map(tab => (tab.id === activeTabId ? { ...tab, url } : tab)));
-    saveHistory(url);
+    let url = addressInput.current.value;
+    if (!url.startsWith('http')) url = 'https://' + url;
+    setTabs(tabs.map(tab => tab.id === activeTabId ? { ...tab, url } : tab));
   };
 
   const handleEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') navigate();
   };
 
-  const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const value = e.target.value.toLowerCase();
-
-  if (value.trim() === '') {
-  if (Array.isArray(browserHistory)) {
-    const recent = [...browserHistory]
-      .sort((a, b) =>
-  new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-)
-      .slice(0, 8);
-    setFilteredHistory(recent);
+  function openFavorite(url: string): void {
+    setTabs(prev =>
+      prev.map(tab =>
+        tab.id === activeTabId ? { ...tab, url } : tab
+      )
+    );
   }
-  setShowHistoryDropdown(true);
-  return;
-}
 
-
-  const filtered = browserHistory
-    .filter(entry => entry.url.toLowerCase().includes(value))
-    .sort((a, b) => b.timestamp - a.timestamp)
-    .slice(0, 8);
-
-  setFilteredHistory(filtered);
-  setShowHistoryDropdown(true);
-};
-
-
-
-  const openFavorite = (url: string) => {
-    const newId = Date.now();
-    const newTab = { id: newId, title: 'New Tab', url };
-    setTabs(prev => [...prev, newTab]);
-    setActiveTabId(newId);
-  };
-
-  const promptFavoriteSave = () => setShowFolderPrompt(true);
-
-  const saveFavoriteToFolder = async () => {
-    if (!activeTab?.url || !activeTab?.title) return;
-    const folder = selectedFolder || newFolderName.trim() || ' ';
-    const newFavorite = {
-      name: activeTab.title,
-      url: activeTab.url,
-      favicon: getFaviconFromURL(activeTab.url)
+  // Handle events
+  useEffect(() => {
+    const handleOpenTab = (e: CustomEvent) => {
+      handleNewTab(e.detail.url);
     };
-    const current = { ...favorites };
-    const exists = current[folder]?.some(f => f.url === newFavorite.url);
-    if (exists) return;
-    current[folder] = [...(current[folder] || []), newFavorite];
-    setFavorites(current);
-    await window.electronAPI.saveFavorites?.(current);
-    setShowFolderPrompt(false);
-    setNewFolderName('');
-    setSelectedFolder(null);
-  };
+    const handleNewTabShortcut = () => handleNewTab();
+    const handleCloseTabShortcut = () => {
+      if (tabs.length > 0) handleCloseTab(activeTabId);
+    };
+    const handleReopenTabShortcut = handleReopenTab;
+    const handleSaveFavoriteShortcut = handleSaveFavorite;
 
-   const saveHistory = async (url: string) => {
-  try {
-    if (!url || url === 'about:blank') return;
+    window.addEventListener('open-tab', handleOpenTab as EventListener);
+    window.addEventListener('shortcut:new-tab', handleNewTabShortcut);
+    window.addEventListener('shortcut:close-tab', handleCloseTabShortcut);
+    window.addEventListener('shortcut:reopen-tab', handleReopenTabShortcut);
+    window.addEventListener('shortcut:save-favorite', handleSaveFavoriteShortcut);
 
-    // Normalize and validate the URL
-    let validUrl = url.trim();
+    return () => {
+      window.removeEventListener('open-tab', handleOpenTab as EventListener);
+      window.removeEventListener('shortcut:new-tab', handleNewTabShortcut);
+      window.removeEventListener('shortcut:close-tab', handleCloseTabShortcut);
+      window.removeEventListener('shortcut:reopen-tab', handleReopenTabShortcut);
+      window.removeEventListener('shortcut:save-favorite', handleSaveFavoriteShortcut);
+    };
+  }, [tabs, activeTabId, closedTabs, favorites]);
 
-    // If it's a plain search term (e.g. no dots or schema), it's probably a Google search
-    const isLikelyUrl = validUrl.includes('.') && !validUrl.includes(' ');
-    if (!validUrl.startsWith('http') && isLikelyUrl) {
-      validUrl = 'https://' + validUrl;
-    } else if (!validUrl.startsWith('http') && !isLikelyUrl) {
-      validUrl = `https://www.google.com/search?q=${encodeURIComponent(validUrl)}`;
-    }
-
-    // Ensure valid URL structure
-    new URL(validUrl); // This will throw if invalid
-
-    const exists = browserHistory.some(entry => entry.url === validUrl);
-    if (exists) return;
-
-    const updated: HistoryEntry[] = [
-      ...browserHistory,
-      { url: validUrl, timestamp: new Date().toISOString() }
-    ];
-
-    setBrowserHistory(updated);
-    await window.electronAPI.saveHistory?.(updated);
-  } catch (err) {
-    console.error('🚨 Failed to save history entry:', url, err.message);
-  }
-};
-
-
-useEffect(() => {
-  const handleOpenTab = (e: Event) => {
-    const customEvent = e as CustomEvent;
-    const url = customEvent.detail?.url;
-    if (!url) return;
-
-    const newId = Date.now();
-    const newTab = { id: newId, title: 'New Tab', url };
-
-    setTabs(prev => [...prev, newTab]);
-    setActiveTabId(newId);
-    saveHistory(url);
-
-    // Delay to allow the <webview> to mount
-    setTimeout(() => {
-      const view = webviews[newId]?.current;
-      if (!view) return;
-
-      view.addEventListener('did-finish-load', () => {
-        view.executeJavaScript(`
-          Promise.resolve({
-            title: document.title,
-            favicon: (() => {
-              const link = document.querySelector("link[rel~='icon']");
-              return link ? link.href : null;
-            })()
-          });
-        `).then((result: any) => {
-          setTabs(prevTabs =>
-            prevTabs.map(tab =>
-              tab.id === newId
+  // Fetch <title> and favicon
+  useEffect(() => {
+    const webview = webviews[activeTabId]?.current;
+    if (webview) {
+      const handleLoad = () => {
+        webview.executeJavaScript(`
+          (() => {
+            const icon = document.querySelector("link[rel*='icon']");
+            const title = document.title || '';
+            return { favicon: icon?.href || '', title };
+          })();
+        `).then((result: { favicon: string; title: string }) => {
+          setTabs(prev =>
+            prev.map(tab =>
+              tab.id === activeTabId
                 ? {
                     ...tab,
-                    title: result.title || tab.title,
                     favicon: result.favicon || tab.favicon,
+                    title: result.title || tab.title,
                   }
                 : tab
             )
           );
         });
-      });
-    }, 300);
-  };
-
-  window.addEventListener('open-tab', handleOpenTab);
-  return () => window.removeEventListener('open-tab', handleOpenTab);
-}, []);
-
-
-
-
-  const getFaviconFromURL = (url: string) => {
-    try {
-      const parsed = new URL(url);
-      return `${parsed.origin}/favicon.ico`;
-    } catch {
-      return '';
+      };
+      webview.addEventListener('did-stop-loading', handleLoad);
+      return () => webview.removeEventListener('did-stop-loading', handleLoad);
     }
-  };
-
-  const deleteFavorite = async (name: string, folder?: string) => {
-    const updated = { ...favorites };
-    const targetFolder = folder || ' ';
-    if (updated[targetFolder]) {
-      updated[targetFolder] = updated[targetFolder].filter(f => f.name !== name);
-      if (updated[targetFolder].length === 0 && targetFolder !== ' ') delete updated[targetFolder];
-    }
-    setFavorites(updated);
-    await window.electronAPI.saveFavorites?.(updated);
-  };
-
-  const deleteFolder = async (folderName: string) => {
-    const updated = { ...favorites };
-    delete updated[folderName];
-    setFavorites(updated);
-    await window.electronAPI.saveFavorites?.(updated);
-  };
-
-  const renameFolder = async (oldName: string, newName: string) => {
-    if (!oldName || !newName || oldName === newName || favorites[newName]) return;
-    const updated = { ...favorites };
-    updated[newName] = updated[oldName];
-    delete updated[oldName];
-    setFavorites(updated);
-    await window.electronAPI.saveFavorites?.(updated);
-  };
-
-  useEffect(() => {
-    const view = webviews[activeTabId]?.current;
-    if (!view) return;
-
-    const updateTabMetadata = () => {
-      view.executeJavaScript(`
-        Promise.resolve({
-          title: document.title,
-          favicon: (() => {
-            const link = document.querySelector("link[rel~='icon']");
-            return link ? link.href : null;
-          })()
-        });
-      `, true).then((result: any) => {
-        setTabs(prev => prev.map(tab =>
-          tab.id === activeTabId
-            ? {
-                ...tab,
-                title: result.title || tab.title,
-                favicon: result.favicon || tab.favicon
-              }
-            : tab
-        ));
-      });
-    };
-
-    view.addEventListener('page-title-updated', updateTabMetadata);
-    view.addEventListener('did-navigate', updateTabMetadata);
-    view.addEventListener('did-navigate-in-page', updateTabMetadata);
-
-    return () => {
-      view.removeEventListener('page-title-updated', updateTabMetadata);
-      view.removeEventListener('did-navigate', updateTabMetadata);
-      view.removeEventListener('did-navigate-in-page', updateTabMetadata);
-    };
-  }, [activeTabId]);
-
-  useEffect(() => {
-    const handleHotkeyNewTab = () => handleNewTab();
-    const handleHotkeyCloseTab = () => handleCloseTab(activeTabId);
-    const handleHotkeyReopenTab = () => handleReopenTab();
-    const handleHotkeySaveFavorite = () => promptFavoriteSave();
-
-    window.addEventListener('shortcut:new-tab', handleHotkeyNewTab);
-    window.addEventListener('shortcut:close-tab', handleHotkeyCloseTab);
-    window.addEventListener('shortcut:reopen-tab', handleHotkeyReopenTab);
-    window.addEventListener('shortcut:save-favorite', handleHotkeySaveFavorite);
-
-    return () => {
-      window.removeEventListener('shortcut:new-tab', handleHotkeyNewTab);
-      window.removeEventListener('shortcut:close-tab', handleHotkeyCloseTab);
-      window.removeEventListener('shortcut:reopen-tab', handleHotkeyReopenTab);
-      window.removeEventListener('shortcut:save-favorite', handleHotkeySaveFavorite);
-    };
-  }, [tabs, activeTabId, closedTabs]);
-
-    useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore key presses inside inputs/textareas
-      const tag = (e.target as HTMLElement).tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-
-      // Ctrl + R or F5: Reload tab
-      if ((e.ctrlKey && e.key === 'r') || e.key === 'F5') {
-        e.preventDefault();
-        webviews[activeTabId]?.current?.reload();
-      }
-
-      // Ctrl + Tab: Next tab
-      if (e.ctrlKey && !e.shiftKey && e.key === 'Tab') {
-        e.preventDefault();
-        const currentIndex = tabs.findIndex(t => t.id === activeTabId);
-        const nextIndex = (currentIndex + 1) % tabs.length;
-        setActiveTabId(tabs[nextIndex].id);
-      }
-
-      // Ctrl + Shift + Tab: Previous tab
-      if (e.ctrlKey && e.shiftKey && e.key === 'Tab') {
-        e.preventDefault();
-        const currentIndex = tabs.findIndex(t => t.id === activeTabId);
-        const prevIndex = (currentIndex - 1 + tabs.length) % tabs.length;
-        setActiveTabId(tabs[prevIndex].id);
-      }
-
-      // Ctrl + 1–9: Jump to tab
-      if (e.ctrlKey && /^[1-9]$/.test(e.key)) {
-        e.preventDefault();
-        const tabIndex = parseInt(e.key, 10) - 1;
-        if (tabIndex < tabs.length) {
-          setActiveTabId(tabs[tabIndex].id);
-        }
-      }
-
-      // Escape: Dismiss folder prompt or context menus
-      if (e.key === 'Escape') {
-        setShowFolderPrompt(false);
-        setShowHistoryDropdown(false);
-
-        // Restore current tab URL if address bar is empty
-        if (document.activeElement === addressInput.current && addressInput.current?.value === '') {
-          if (activeTab?.url) {
-            addressInput.current.value = activeTab.url;
-          }
-        }
-
-        const openMenus = document.querySelectorAll('.context-menu');
-        openMenus.forEach(menu => menu.remove());
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [tabs, activeTabId, webviews]);
-
-
-  const goHome = () => {
-    const homepage = 'https://miamidadecounty.sharepoint.com/sites/ITServiceDesk';
-    setTabs(tabs.map(tab => (tab.id === activeTabId ? { ...tab, url: homepage } : tab)));
-  };
+  }, [activeTabId, tabs]);
 
   return (
     <div className="h-screen w-screen flex bg-neutral-900 text-white font-sans">
       <Sidebar isOpen={sidebarOpen} toggle={() => setSidebarOpen(!sidebarOpen)} />
       <div className="flex-1 flex flex-col">
+        {/* Address Bar */}
         <div className="flex items-center gap-2 bg-gradient-to-r from-purple-800 to-indigo-900 p-2 shadow-md">
-          <button onClick={goHome} className="px-2" title="Home">🏠</button>
+          <button onClick={() => webviews[activeTabId]?.current?.loadURL('https://miamidadecounty.sharepoint.com/sites/ITServiceDesk')} className="px-2">🏠</button>
           <button onClick={() => webviews[activeTabId]?.current?.goBack()} className="px-2">⟨</button>
           <button onClick={() => webviews[activeTabId]?.current?.goForward()} className="px-2">⟩</button>
           <button onClick={() => webviews[activeTabId]?.current?.reload()} className="px-2">⟳</button>
@@ -421,115 +169,55 @@ useEffect(() => {
             ref={addressInput}
             defaultValue={activeTab?.url}
             onKeyDown={handleEnter}
-            onChange={handleAddressChange}
-            onFocus={() => {
-            if (!Array.isArray(browserHistory)) return;
-
-            const recent = [...browserHistory]
-              .sort((a, b) =>
-  new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-)
-              .slice(0, 8);
-
-            setFilteredHistory(recent);
-            setShowHistoryDropdown(true);
-          }}
-
-            onBlur={() => setTimeout(() => setShowHistoryDropdown(false), 200)}
             className="flex-1 px-3 py-1 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
           />
-
-          {showHistoryDropdown && (
-            <div className="absolute top-14 left-48 right-4 z-50 bg-white text-black shadow-md rounded max-h-64 overflow-y-auto">
-              {Array.isArray(filteredHistory) && filteredHistory.length === 0 ? (
-  <div className="p-2 text-sm text-gray-600">No recent history</div>
-) : (
-  Array.isArray(filteredHistory) && filteredHistory.map((entry, i) => (
-    <div
-      key={i}
-      onMouseDown={() => {
-        if (addressInput.current) {
-          addressInput.current.value = entry.url;
-          navigate();
-          setShowHistoryDropdown(false);
-        }
-      }}
-      className="px-3 py-2 hover:bg-gray-200 cursor-pointer text-sm truncate"
-    >
-      {entry.url}
-    </div>
-  ))
-)}
-
-            </div>
-          )}
-
-          <button onClick={promptFavoriteSave} className="px-2 py-1 bg-yellow-500 text-black rounded hover:bg-yellow-400" title="Add to Favorites">⭐</button>
-          <button onClick={handleNewTab} className="px-2 py-1 bg-pink-600 rounded hover:bg-pink-500">➕</button>
+          <button onClick={() => handleNewTab()} className="px-2 py-1 bg-pink-600 rounded hover:bg-pink-500">➕</button>
         </div>
 
-        <Tabs tabs={tabs} activeTabId={activeTabId} setActiveTabId={setActiveTabId} handleCloseTab={handleCloseTab} />
-
-        <FavoritesBar
-          favorites={favorites}
-          onFavoriteClick={openFavorite}
-          onFavoriteDelete={deleteFavorite}
-          onFolderRename={renameFolder}
-          onFolderDelete={deleteFolder}
-        />
-
-        <div className="flex-1 relative">
+        {/* Tabs */}
+        <div className="flex space-x-2 px-3 py-2 bg-black border-b border-gray-800 overflow-x-auto">
           {tabs.map(tab => (
-            <webview
+            <div
               key={tab.id}
-              ref={webviews[tab.id]}
-              src={tab.url}
-              allowpopups="true"
-              webpreferences="nativeWindowOpen=yes, contextIsolation=true"
-              style={{
-                width: '100%',
-                height: '100%',
-                visibility: tab.id === activeTabId ? 'visible' : 'hidden',
-                position: tab.id === activeTabId ? 'relative' : 'absolute',
-                top: 0,
-                left: 0
-              }}
-            />
+              onClick={() => setActiveTabId(tab.id)}
+              className={clsx(
+                'px-4 py-1 rounded-full text-sm cursor-pointer font-medium transition-all flex items-center gap-2',
+                tab.id === activeTabId ? 'bg-pink-600' : 'bg-gray-700 hover:bg-purple-600'
+              )}
+            >
+              {tab.favicon && <img src={tab.favicon} alt="favicon" className="w-4 h-4" />}
+              <span title={tab.title}>
+                {tab.title.length > 25 ? tab.title.slice(0, 25) + '…' : tab.title}
+              </span>
+              <span
+                className="ml-2 text-red-300 hover:text-red-500"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCloseTab(tab.id);
+                }}
+              >
+                ×
+              </span>
+            </div>
           ))}
         </div>
-      </div>
 
-      {showFolderPrompt && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-          <div className="bg-white text-black rounded p-4 w-96">
-            <h2 className="text-lg font-bold mb-2">Add Favorite to Folder</h2>
-            <label className="block mb-1">Select Existing Folder:</label>
-            <select
-              className="w-full mb-2 p-2 border"
-              onChange={(e) => setSelectedFolder(e.target.value)}
-              value={selectedFolder || ''}
-            >
-              <option value="">-- Choose a folder --</option>
-              {Object.keys(favorites).filter(f => f !== ' ').map(folder => (
-                <option key={folder} value={folder}>{folder}</option>
-              ))}
-            </select>
+        <FavoritesBar onFavoriteClick={openFavorite} />
 
-            <label className="block mb-1 mt-2">Or Create New Folder:</label>
-            <input
-              value={newFolderName}
-              onChange={(e) => setNewFolderName(e.target.value)}
-              placeholder="New folder name"
-              className="w-full p-2 border"
-            />
-
-            <div className="flex justify-end mt-4 gap-2">
-              <button onClick={() => setShowFolderPrompt(false)} className="bg-gray-300 px-3 py-1 rounded">Cancel</button>
-              <button onClick={saveFavoriteToFolder} className="bg-blue-600 text-white px-3 py-1 rounded">Save</button>
-            </div>
-          </div>
+        {/* Webview Display */}
+        <div className="flex-1 relative">
+          {tabs.map(tab =>
+            tab.id === activeTabId ? (
+              <webview
+                key={tab.id}
+                ref={webviews[tab.id]}
+                src={tab.url}
+                style={{ width: '100%', height: '100%' }}
+              />
+            ) : null
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

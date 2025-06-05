@@ -39,31 +39,28 @@ try {
 contextBridge.exposeInMainWorld('electronAPI', {
   launchApp: (cmd) => ipcRenderer.invoke('launch-app', cmd),
   getConfig: () => ipcRenderer.invoke('get-user-config'),
+  saveConfig: (config) => ipcRenderer.invoke('save-config', config),
   saveFavorites: (favorites) => {
-  if (
-    typeof favorites !== 'object' ||
-    Array.isArray(favorites)
-  ) {
-    console.warn('Favorites must be an object of folders');
-    return;
-  }
-
-  for (const folder in favorites) {
-    if (!Array.isArray(favorites[folder])) {
-      console.warn(`Folder "${folder}" must be an array of favorites`);
+    if (typeof favorites === 'object' && !Array.isArray(favorites)) {
+      for (const folder in favorites) {
+        if (!Array.isArray(favorites[folder])) {
+          console.warn(`Folder "${folder}" must be an array of favorites`);
+          return;
+        }
+        for (const fav of favorites[folder]) {
+          if (!fav.name || !fav.url) {
+            console.warn(`Invalid favorite in folder "${folder}":`, fav);
+            return;
+          }
+        }
+      }
+    } else {
+      console.warn('Favorites must be an object of folders');
       return;
     }
 
-    for (const fav of favorites[folder]) {
-      if (!fav.name || !fav.url) {
-        console.warn(`Invalid favorite in folder "${folder}":`, fav);
-        return;
-      }
-    }
-  }
-
-  return ipcRenderer.invoke('save-favorites', favorites);
-},
+    return ipcRenderer.invoke('save-favorites', favorites);
+  },
   saveHistory: (url) => ipcRenderer.invoke('save-history', url),
   getHistory: () => ipcRenderer.invoke('get-history'),
   ipc: {
@@ -92,7 +89,7 @@ ipcRenderer.on('shortcut:save-favorite', () => {
 
 // Relay window.open() requests as custom DOM events
 ipcRenderer.on('open-new-tab', (_, url) => {
-  console.log('[preload] Dispatching open-tab:', url); // ✅ Debug
+  console.log('[preload] Dispatching open-tab:', url);
   window.dispatchEvent(new CustomEvent('open-tab', { detail: { url } }));
 });
 

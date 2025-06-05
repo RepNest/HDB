@@ -4,13 +4,12 @@ const fs = require('fs');
 const os = require('os');
 const { spawn } = require('child_process');
 
-
 // Proxy and Auth
 app.commandLine.appendSwitch('auth-server-whitelist', '*.miamidade.gov,*.sharepoint.com');
 app.commandLine.appendSwitch('auth-negotiate-delegate-whitelist', '*.miamidade.gov,*.sharepoint.com');
 app.commandLine.appendSwitch('auth-schemes', 'ntlm,negotiate,basic');
 app.commandLine.appendSwitch('proxy-auto-detect');
-app.commandLine.appendSwitch('enable-features', 'PDFViewerUpdate'); //,AllowInsecurePrivateNetworkRequests
+app.commandLine.appendSwitch('enable-features', 'PDFViewerUpdate');
 
 // Config paths
 app.setPath('userData', path.join(os.homedir(), 'AppData', 'Roaming', 'HelpDeskBrowser'));
@@ -41,9 +40,9 @@ function initializeUserConfig() {
     const current = readConfig();
     let changed = false;
 
-    ['apps', 'favorites', 'sidebarCollapsed'].forEach(key => {
+    ['apps', 'favorites', 'sidebarCollapsed', 'itdTools', 'history'].forEach(key => {
       if (!(key in current)) {
-        current[key] = defaultConfig[key];
+        current[key] = defaultConfig[key] || (key === 'itdTools' ? {} : key === 'history' ? [] : {});
         changed = true;
       }
     });
@@ -69,150 +68,125 @@ function createWindow() {
       webviewTag: true,
       sandbox: false,
       webSecurity: false,
-      session: sharedSession, // ✅ Reuse session
-      partition: 'persist:shared', // optional since session is set
-      plugins: true
-    }
+      session: sharedSession,
+      partition: 'persist:shared',
+      plugins: true,
+    },
   });
 
-  
-win.loadURL(`file://${path.join(__dirname, 'dist/index.html')}`);
-
-
+  win.loadURL(`file://${path.join(__dirname, 'dist/index.html')}`);
 }
-
 
 // Web Contents Events
 app.on('web-contents-created', (_event, contents) => {
-  // Context menu setup (leave this unchanged)
   contents.on('context-menu', (e, params) => {
-  const template = [];
-
-  // Link-related options
-  if (params.linkURL) {
-    template.push(
-      {
-        label: 'Open Link in New Tab',
-        click: () => {
-          const window = BrowserWindow.getFocusedWindow();
-          if (window) {
-            window.webContents.send('open-new-tab', params.linkURL);
-          }
+    const template = [];
+    if (params.linkURL) {
+      template.push(
+        {
+          label: 'Open Link in New Tab',
+          click: () => {
+            const window = BrowserWindow.getFocusedWindow();
+            if (window) {
+              window.webContents.send('open-new-tab', params.linkURL);
+            }
+          },
+        },
+        {
+          label: 'Copy Link Address',
+          click: () => require('electron').clipboard.writeText(params.linkURL),
         }
-      },
-      {
-        label: 'Copy Link Address',
-        click: () => require('electron').clipboard.writeText(params.linkURL)
-      }
-    );
-  }
-
-  // Image handling
-  if (params.srcURL && params.mediaType === 'image') {
-    template.push({
-      label: 'Save Image As...',
-      click: async () => {
-        const { dialog } = require('electron');
-        const https = require('https');
-        const fs = require('fs');
-        const path = require('path');
-
-        const win = BrowserWindow.getFocusedWindow();
-        if (!win) return;
-
-        const savePath = dialog.showSaveDialogSync(win, {
-          defaultPath: path.basename(params.srcURL),
-          filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'ico'] }]
-        });
-
-        if (savePath) {
-          https.get(params.srcURL, response => {
-            const file = fs.createWriteStream(savePath);
-            response.pipe(file);
-            file.on('finish', () => file.close());
-          }).on('error', err => {
-            console.error('❌ Failed to save image:', err.message);
-          });
-        }
-      }
-    });
-  }
-
-  // Search Google
-  if (params.selectionText) {
-    template.push({
-      label: `Search Google for "${params.selectionText.slice(0, 25)}…"`,
-
-      click: () => {
-        const q = encodeURIComponent(params.selectionText);
-        require('electron').shell.openExternal(`https://www.google.com/search?q=${q}`);
-      }
-    });
-  }
-
-  if (template.length > 0) template.push({ type: 'separator' });
-
-  // Clipboard/edit actions
-  template.push(
-    { role: 'cut', enabled: params.editFlags.canCut },
-    { role: 'copy', enabled: params.editFlags.canCopy },
-    { role: 'paste', enabled: params.editFlags.canPaste }
-  );
-
-  template.push({ type: 'separator' });
-  template.push({ role: 'selectAll' });
-
-  // 👇 Add "Inspect Element"
-  template.push({ type: 'separator' });
-  template.push({
-    label: 'Inspect Element',
-    click: () => contents.inspectElement(params.x, params.y)
-  });
-
-  const menu = Menu.buildFromTemplate(template);
-  menu.popup({ window: BrowserWindow.fromWebContents(contents) });
-});
-
-
-
-  // Modern window.open() handler
-  contents.setWindowOpenHandler(({ url }) => {
-  const parentSession = contents.session; // ✅ get session from the parent webContents
-
-  const popup = new BrowserWindow({
-    width: 1000,
-    height: 800,
-    parent: BrowserWindow.fromWebContents(contents),
-    modal: false,
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-      webviewTag: true,
-      sandbox: false,
-      session: parentSession, // ✅ use same session (not just by partition string)
-      webSecurity: false
+      );
     }
+
+    if (params.srcURL && params.mediaType === 'image') {
+      template.push({
+        label: 'Save Image As...',
+        click: async () => {
+          const { dialog } = require('electron');
+          const https = require('https');
+          const fs = require('fs');
+          const path = require('path');
+
+          const win = BrowserWindow.getFocusedWindow();
+          if (!win) return;
+
+          const savePath = dialog.showSaveDialogSync(win, {
+            defaultPath: path.basename(params.srcURL),
+            filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'ico'] }],
+          });
+
+          if (savePath) {
+            https.get(params.srcURL, response => {
+              const file = fs.createWriteStream(savePath);
+              response.pipe(file);
+              file.on('finish', () => file.close());
+            }).on('error', err => {
+              console.error('❌ Failed to save image:', err.message);
+            });
+          }
+        },
+      });
+    }
+
+    if (params.selectionText) {
+      template.push({
+        label: `Search Google for "${params.selectionText.slice(0, 25)}…"`,
+        click: () => {
+          const q = encodeURIComponent(params.selectionText);
+          require('electron').shell.openExternal(`https://www.google.com/search?q=${q}`);
+        },
+      });
+    }
+
+    if (template.length > 0) template.push({ type: 'separator' });
+
+    template.push(
+      { role: 'cut', enabled: params.editFlags.canCut },
+      { role: 'copy', enabled: params.editFlags.canCopy },
+      { role: 'paste', enabled: params.editFlags.canPaste }
+    );
+
+    template.push({ type: 'separator' });
+    template.push({ role: 'selectAll' });
+
+    template.push({ type: 'separator' });
+    template.push({
+      label: 'Inspect Element',
+      click: () => contents.inspectElement(params.x, params.y),
+    });
+
+    const menu = Menu.buildFromTemplate(template);
+    menu.popup({ window: BrowserWindow.fromWebContents(contents) });
   });
 
-  popup.loadURL(url);
-  return { action: 'deny' }; // prevent default Electron popup
+  contents.setWindowOpenHandler(({ url }) => {
+    const parentSession = contents.session;
+    const popup = new BrowserWindow({
+      width: 1000,
+      height: 800,
+      parent: BrowserWindow.fromWebContents(contents),
+      modal: false,
+      webPreferences: {
+        preload: path.join(__dirname, 'preload.js'),
+        contextIsolation: true,
+        nodeIntegration: false,
+        webviewTag: true,
+        sandbox: false,
+        session: parentSession,
+        webSecurity: false,
+      },
+    });
+
+    popup.loadURL(url);
+    return { action: 'deny' };
+  });
 });
 
-});
-
-
-// IPC HANDLERS
+// IPC Handlers
 ipcMain.handle('get-user-config', async () => {
   try {
     const config = readConfig();
-
-    if (Array.isArray(config.favorites)) {
-      config.favorites = { Unsorted: config.favorites };
-    }
-
-    if (!Array.isArray(config.history)) config.history = [];
-
     return config;
   } catch (err) {
     console.error('❌ Failed to read user config:', err.message);
@@ -220,9 +194,20 @@ ipcMain.handle('get-user-config', async () => {
       sidebarCollapsed: false,
       apps: [],
       favorites: {},
+      itdTools: {},
       history: [],
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
+  }
+});
+
+ipcMain.handle('save-config', async (_, updatedConfig) => {
+  try {
+    writeConfig(updatedConfig);
+    return true;
+  } catch (err) {
+    console.error('❌ Failed to save config:', err.message);
+    return false;
   }
 });
 
@@ -231,14 +216,12 @@ ipcMain.handle('save-favorites', async (_, updatedFavorites) => {
     if (typeof updatedFavorites !== 'object' || Array.isArray(updatedFavorites)) {
       throw new Error('Favorites must be an object of folders');
     }
-
     for (const [folder, entries] of Object.entries(updatedFavorites)) {
       if (!Array.isArray(entries)) throw new Error(`Favorites in "${folder}" must be an array`);
       for (const fav of entries) {
         if (!fav?.name || !fav?.url) throw new Error(`Invalid favorite in "${folder}"`);
       }
     }
-
     const config = readConfig();
     config.favorites = updatedFavorites;
     writeConfig(config);
@@ -252,10 +235,7 @@ ipcMain.handle('save-favorites', async (_, updatedFavorites) => {
 ipcMain.handle('save-history', async (_, newHistory) => {
   try {
     const config = readConfig();
-
-    // Flatten out entries if nested under `.url`
     const flatHistory = [];
-
     if (Array.isArray(newHistory)) {
       for (const entry of newHistory) {
         if (Array.isArray(entry.url)) {
@@ -269,14 +249,12 @@ ipcMain.handle('save-history', async (_, newHistory) => {
         }
       }
     }
-
     config.history = flatHistory;
     writeConfig(config);
   } catch (err) {
     console.error('❌ Failed to save history:', err.message);
   }
 });
-
 
 ipcMain.handle('get-history', async () => {
   try {
@@ -296,7 +274,7 @@ ipcMain.handle('launch-app', async (_, cmd) => {
         cwd: path.dirname(match[1]),
         detached: true,
         stdio: 'ignore',
-        windowsHide: true
+        windowsHide: true,
       }).unref();
     } else {
       spawn('cmd', ['/c', cmd], { shell: true, detached: true, stdio: 'ignore', windowsHide: true }).unref();
@@ -307,12 +285,10 @@ ipcMain.handle('launch-app', async (_, cmd) => {
 });
 
 // App lifecycle
-
 let sharedSession;
 
 app.whenReady().then(() => {
   sharedSession = session.fromPartition('persist:shared');
-
   initializeUserConfig();
   createWindow();
 
@@ -344,7 +320,7 @@ app.on('login', (event, webContents, request, authInfo, callback) => {
     console.log(`🔐 Attempting automatic login to ${authInfo.host}`);
     callback('', '');
   } else {
-    console.warn('🔐 Untrusted domain requested credentials:', authInfo.host);
+    console.warn('🔐 Unknown domain requested credentials:', authInfo.host);
   }
 });
 

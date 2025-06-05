@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { spawn } = require('child_process');
+const { autoUpdater } = require('electron-updater');
 
 
 // Proxy and Auth
@@ -56,6 +57,24 @@ function initializeUserConfig() {
     if (changed) writeConfig(current);
   }
 }
+
+function loadExtensions() {
+  const extDir = path.join(app.getPath('userData'), 'extensions');
+  if (!fs.existsSync(extDir)) return;
+
+  fs.readdirSync(extDir).forEach(file => {
+    const extPath = path.join(extDir, file);
+    if (file.endsWith('.js')) {
+      try {
+        require(extPath); // Each extension can register IPC, hooks, etc.
+        console.log(`✅ Loaded extension: ${file}`);
+      } catch (err) {
+        console.error(`❌ Failed to load extension ${file}:`, err);
+      }
+    }
+  });
+}
+
 
 // Create Window
 function createWindow() {
@@ -311,9 +330,22 @@ ipcMain.handle('launch-app', async (_, cmd) => {
 let sharedSession;
 
 app.whenReady().then(() => {
+
+
+  autoUpdater.checkForUpdatesAndNotify();
+
+  autoUpdater.on('update-available', () => {
+    console.log('🚀 Update available.');
+  });
+
+  autoUpdater.on('update-downloaded', () => {
+    console.log('✅ Update downloaded. Will install on quit.');
+  });
+
   sharedSession = session.fromPartition('persist:shared');
 
   initializeUserConfig();
+  loadExtensions();
   createWindow();
 
   session.defaultSession.resolveProxy('https://outlook.office.com').then(proxy => {

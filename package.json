@@ -3,6 +3,13 @@
   "version": "1.0.0",
   "main": "electron-main.js",
   "build": {
+    "publish": [
+      {
+      "provider": "github",
+      "owner": "RepNest",
+      "repo": "HDB"
+      }
+    ],
     "appId": "com.helpdeskbrowser.app",
     "productName": "HelpDeskBrowser",
     "files": [
@@ -10,7 +17,8 @@
       "electron-main.js",
       "preload.js",
       "assets/**/*",
-      "src/default-config.json"
+      "src/default-config.json",
+      "public/scripts/Initial_ADUC_Setup.ps1"
     ],
     "directories": {
       "output": "dist"
@@ -33,6 +41,7 @@
   },
   "dependencies": {
     "clsx": "^2.1.1",
+    "electron-updater": "^6.6.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

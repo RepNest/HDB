@@ -58,6 +58,24 @@ function initializeUserConfig() {
   }
 }
 
+function loadExtensions() {
+  const extDir = path.join(app.getPath('userData'), 'extensions');
+  if (!fs.existsSync(extDir)) return;
+
+  fs.readdirSync(extDir).forEach(file => {
+    const extPath = path.join(extDir, file);
+    if (file.endsWith('.js')) {
+      try {
+        require(extPath); // Each extension can register IPC, hooks, etc.
+        console.log(`✅ Loaded extension: ${file}`);
+      } catch (err) {
+        console.error(`❌ Failed to load extension ${file}:`, err);
+      }
+    }
+  });
+}
+
+
 // Create Window
 function createWindow() {
   const win = new BrowserWindow({
@@ -327,6 +345,7 @@ app.whenReady().then(() => {
   sharedSession = session.fromPartition('persist:shared');
 
   initializeUserConfig();
+  loadExtensions();
   createWindow();
 
   session.defaultSession.resolveProxy('https://outlook.office.com').then(proxy => {

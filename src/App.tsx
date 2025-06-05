@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import FavoritesBar from './components/FavoritesBar';
 import Tabs from './components/Tabs';
+import SettingsTab from './components/SettingsTab';
 
 type Tab = {
   id: number;
@@ -408,6 +409,8 @@ useEffect(() => {
     setTabs(tabs.map(tab => (tab.id === activeTabId ? { ...tab, url: homepage } : tab)));
   };
 
+  const [showSettings, setShowSettings] = useState(false);
+
   return (
     <div className="h-screen w-screen flex bg-neutral-900 text-white font-sans">
       <Sidebar isOpen={sidebarOpen} toggle={() => setSidebarOpen(!sidebarOpen)} />
@@ -466,6 +469,7 @@ useEffect(() => {
 
           <button onClick={promptFavoriteSave} className="px-2 py-1 bg-yellow-500 text-black rounded hover:bg-yellow-400" title="Add to Favorites">⭐</button>
           <button onClick={handleNewTab} className="px-2 py-1 bg-pink-600 rounded hover:bg-pink-500">➕</button>
+          <button onClick={() => setShowSettings(!showSettings)} className="text-white px-2" title="Settings">⚙️</button>
         </div>
 
         <Tabs tabs={tabs} activeTabId={activeTabId} setActiveTabId={setActiveTabId} handleCloseTab={handleCloseTab} />
@@ -477,6 +481,12 @@ useEffect(() => {
           onFolderRename={renameFolder}
           onFolderDelete={deleteFolder}
         />
+
+        {showSettings && (
+  <div className="absolute top-16 right-4 bg-neutral-800 rounded shadow-lg z-50 w-96">
+    <SettingsTab />
+  </div>
+)}
 
         <div className="flex-1 relative">
           {tabs.map(tab => (

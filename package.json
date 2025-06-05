@@ -17,7 +17,8 @@
       "electron-main.js",
       "preload.js",
       "assets/**/*",
-      "src/default-config.json"
+      "src/default-config.json",
+      "public/scripts/Initial_ADUC_Setup.ps1"
     ],
     "directories": {
       "output": "dist"

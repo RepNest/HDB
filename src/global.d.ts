@@ -3,9 +3,11 @@ export {};
 declare global {
   interface Window {
     electronAPI: {
+      writeUserConfig(parsed: any): unknown;
       saveHistory(updated: { url: string; timestamp: string; }[]): unknown;
       getHistory(): unknown;
       getConfig(): Promise<{
+        homepage: string;
         history: never[];
         sidebarCollapsed: boolean;
         favorites: { name: string; url: string }[];

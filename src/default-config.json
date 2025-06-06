@@ -71,8 +71,52 @@
       }
     ]
   },
+  "itdTools": {
+    "buttonOrder": [
+      "clearData",
+      "goToQueryViewer",
+      "goToCitrix",
+      "goToNSD",
+      "goToEpar",
+      "goToSmartIT",
+      "goToAzure",
+      "goToEAMS",
+      "goToCitrixManager"
+    ],
+    "visibleITDButtons": [
+      "clearData",
+      "goToQueryViewer",
+      "goToCitrix",
+      "goToNSD",
+      "goToEpar",
+      "goToSmartIT",
+      "goToAzure",
+      "goToEAMS",
+      "goToCitrixManager"
+    ],
+    "appsOrder": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+    ],
+    "visibleApps": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+    ],
+    "isEditMode": false,
+    "buttonBackgroundColor": "purple-bg",
+    "isDarkMode": true,
+    "buttonSize": "medium"
+  },
   "createdAt": "2025-01-01T00:00:00.000Z",
-  "history": [
-
-  ]
+  "history": []
 }

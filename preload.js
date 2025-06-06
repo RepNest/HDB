@@ -39,6 +39,7 @@ try {
 contextBridge.exposeInMainWorld('electronAPI', {
   launchApp: (cmd) => ipcRenderer.invoke('launch-app', cmd),
   getConfig: () => ipcRenderer.invoke('get-user-config'),
+  saveConfig: (config) => ipcRenderer.invoke('save-config', config),
   saveFavorites: (favorites) => {
   if (
     typeof favorites !== 'object' ||

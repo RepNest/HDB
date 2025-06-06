@@ -245,6 +245,16 @@ ipcMain.handle('get-user-config', async () => {
   }
 });
 
+ipcMain.handle('save-config', async (_, updatedConfig) => {
+  try {
+    writeConfig(updatedConfig);
+    return true;
+  } catch (err) {
+    console.error('❌ Failed to save config:', err.message);
+    return false;
+  }
+});
+
 ipcMain.handle('save-favorites', async (_, updatedFavorites) => {
   try {
     if (typeof updatedFavorites !== 'object' || Array.isArray(updatedFavorites)) {

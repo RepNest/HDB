@@ -117,6 +117,15 @@
     "isDarkMode": true,
     "buttonSize": "medium"
   },
+  "extensions": [
+    {
+      "id": "password-helper",
+      "name": "Password Helper",
+      "description": "Suggests strong passwords and stores them securely.",
+      "enabled": false
+    }
+  ],
+
   "createdAt": "2025-01-01T00:00:00.000Z",
   "history": []
 }

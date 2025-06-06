@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import GeneralSettings from '../../components/Settings/SubComponents/GeneralSettings';
 import AppearanceSettings from '../../components/Settings/SubComponents/AppearanceSettings';
 import ExtensionsSettings from '../../components/Settings/SubComponents/ExtensionsSettings';
-import PrivacySettings from '../../components/Settings/SubComponents/PrivacySettings';
+import PrivacyAndSecuritySettings from '../../components/Settings/SubComponents/PrivacyAndSecuritySettings';
 
 const SettingsTab = () => {
   const [selectedSection, setSelectedSection] = useState('General');
@@ -18,7 +18,7 @@ const SettingsTab = () => {
       case 'Extensions':
         return <ExtensionsSettings />;
       case 'Privacy':
-        return <PrivacySettings />;
+        return <PrivacyAndSecuritySettings />;
       default:
         return <GeneralSettings />;
     }

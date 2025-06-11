@@ -11,6 +11,8 @@ type Extension = {
 declare global {
   interface Window {
     electronAPI: {
+      saveFavorites(updated: { [folder: string]: { name: string; url: string; favicon?: string; }[]; }): unknown;
+      launchApp(cmd: string): unknown;
       saveHistory(arg0: never[]): unknown;
       getConfig: () => Promise<any>;
       saveConfig: (config: any) => Promise<void>;

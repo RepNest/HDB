@@ -71,6 +71,26 @@
       }
     ]
   },
+  "clearOnClose": {
+    "history": false,
+    "downloads": false,
+    "cookies": false,
+    "cache": false,
+    "passwords": false,
+    "autofill": false
+  },
+  "privacySettings": {
+    "sendDoNotTrack": false,
+    "blockThirdPartyCookies": true,
+    "prefetchDns": true
+  },
+  "typoProtectionEnabled": true,
+  "trackingPreventionLevel": "Balanced",
+  "securitySettings": {
+  "safeBrowsingEnabled": true,
+  "autoUpgradeHttps": true,
+  "showCertificateWarnings": true
+},
   "itdTools": {
     "buttonOrder": [
       "clearData",

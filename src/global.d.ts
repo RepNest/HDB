@@ -3,6 +3,7 @@ export {};
 declare global {
   interface Window {
     electronAPI: {
+      saveConfig: any;
       writeUserConfig(parsed: any): unknown;
       saveHistory(updated: { url: string; timestamp: string; }[]): unknown;
       getHistory(): unknown;

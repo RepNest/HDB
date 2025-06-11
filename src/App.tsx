@@ -4,8 +4,15 @@ import Sidebar from './components/Sidebar';
 import FavoritesBar from './components/FavoritesBar';
 import Tabs from './components/Tabs';
 import SettingsTab from './pages/Internal/SettingsTab';
-import { ExtensionPage, HistoryPage } from './pages/Internal/InternalPages';
+import { ExtensionPage, PrivacyAndSecurityPage } from './pages/Internal/InternalPages';
 import { MoreVertical } from 'lucide-react';
+import ClearBrowsingDataPage from './components/Settings/SubComponents/Privacy/ClearBrowsingDataPage';
+import ClearOnClosePage from './components/Settings/SubComponents/Privacy/ClearOnClosePage';
+import TypoProtectionPage from './components/Settings/SubComponents/Privacy/TypoProtectionPage';
+import TrackingPreventionPage from './components/Settings/SubComponents/Privacy/TrackingPreventionPage';
+import PrivacyPage from './components/Settings/SubComponents/Privacy/PrivacyPage';
+import SecurityPage from './components/Settings/SubComponents/Privacy/SecurityPage';
+// import ConnectedExperiencesPage from './components/Settings/SubComponents/Privacy/ConnectedExperiencesPage';
 
 type Tab = {
   id: number;
@@ -522,7 +529,7 @@ useEffect(() => {
                   setShowSettingsMenu(false);
                 }}
               >
-                History
+                Privacy And Security
               </button>
             </div>
           )}
@@ -567,10 +574,67 @@ useEffect(() => {
     if (tab.url === 'about:history') {
       return isActive ? (
         <div key={tab.id} className="w-full h-full text-white">
-          <HistoryPage />
+          <PrivacyAndSecurityPage />
         </div>
       ) : null;
     }
+
+    if (tab.url === 'about:settings/clearbrowsingdata') {
+  return isActive ? (
+    <div key={tab.id} className="w-full h-full text-white">
+      <ClearBrowsingDataPage />
+    </div>
+  ) : null;
+}
+
+if (tab.url === 'about:settings/clearonclose') {
+  return isActive ? (
+    <div key={tab.id} className="w-full h-full text-white">
+      <ClearOnClosePage />
+    </div>
+  ) : null;
+}
+
+if (tab.url === 'about:settings/typoprotection') {
+  return isActive ? (
+    <div key={tab.id} className="w-full h-full text-white">
+      <TypoProtectionPage />
+    </div>
+  ) : null;
+}
+
+if (tab.url === 'about:settings/trackingprevention') {
+  return isActive ? (
+    <div key={tab.id} className="w-full h-full text-white">
+      <TrackingPreventionPage />
+    </div>
+  ) : null;
+}
+
+if (tab.url === 'about:settings/privacy') {
+  return isActive ? (
+    <div key={tab.id} className="w-full h-full text-white">
+      <PrivacyPage />
+    </div>
+  ) : null;
+}
+
+if (tab.url === 'about:settings/security') {
+  return isActive ? (
+    <div key={tab.id} className="w-full h-full text-white">
+      <SecurityPage />
+    </div>
+  ) : null;
+}
+
+if (tab.url === 'about:settings/connectedexperiences') {
+  return isActive ? (
+    <div key={tab.id} className="w-full h-full text-white">
+      <ConnectedExperiencesPage />
+    </div>
+  ) : null;
+}
+
 
     return (
       <webview

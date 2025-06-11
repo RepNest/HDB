@@ -3,7 +3,16 @@ import React, { useState, useRef, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import FavoritesBar from './components/FavoritesBar';
 import Tabs from './components/Tabs';
-import SettingsTab from './components/SettingsTab';
+import SettingsTab from './pages/Internal/SettingsTab';
+import { ExtensionPage, PrivacyAndSecurityPage } from './pages/Internal/InternalPages';
+import { MoreVertical } from 'lucide-react';
+import ClearBrowsingDataPage from './components/Settings/SubComponents/Privacy/ClearBrowsingDataPage';
+import ClearOnClosePage from './components/Settings/SubComponents/Privacy/ClearOnClosePage';
+import TypoProtectionPage from './components/Settings/SubComponents/Privacy/TypoProtectionPage';
+import TrackingPreventionPage from './components/Settings/SubComponents/Privacy/TrackingPreventionPage';
+import PrivacyPage from './components/Settings/SubComponents/Privacy/PrivacyPage';
+import SecurityPage from './components/Settings/SubComponents/Privacy/SecurityPage';
+// import ConnectedExperiencesPage from './components/Settings/SubComponents/Privacy/ConnectedExperiencesPage';
 
 type Tab = {
   id: number;
@@ -41,6 +50,8 @@ export default function App() {
   const [browserHistory, setBrowserHistory] = useState<HistoryEntry[]>([]);
   const [showHistoryDropdown, setShowHistoryDropdown] = useState(false);
   const [filteredHistory, setFilteredHistory] = useState<HistoryEntry[]>([]);
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const [showSettings, setShowSettings] = useState(false)
 
   const addressInput = useRef<HTMLInputElement>(null);
   const webviews: Record<number, React.RefObject<any>> = {};
@@ -201,6 +212,23 @@ export default function App() {
   }
 };
 
+useEffect(() => {
+  const handleClickOutside = (e: MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (!target.closest('.settings-menu') && !target.closest('.settings-trigger')) {
+      setShowSettingsMenu(false);
+    }
+  };
+  const handleEscape = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') setShowSettingsMenu(false);
+  };
+  document.addEventListener('mousedown', handleClickOutside);
+  document.addEventListener('keydown', handleEscape);
+  return () => {
+    document.removeEventListener('mousedown', handleClickOutside);
+    document.removeEventListener('keydown', handleEscape);
+  };
+}, []);
 
 useEffect(() => {
   const handleOpenTab = (e: Event) => {
@@ -409,105 +437,226 @@ useEffect(() => {
     setTabs(tabs.map(tab => (tab.id === activeTabId ? { ...tab, url: homepage } : tab)));
   };
 
-  const [showSettings, setShowSettings] = useState(false);
-
   return (
-    <div className="h-screen w-screen flex bg-neutral-900 text-white font-sans">
-      <Sidebar isOpen={sidebarOpen} toggle={() => setSidebarOpen(!sidebarOpen)} />
-      <div className="flex-1 flex flex-col">
-        <div className="flex items-center gap-2 bg-gradient-to-r from-purple-800 to-indigo-900 p-2 shadow-md">
-          <button onClick={goHome} className="px-2" title="Home">🏠</button>
-          <button onClick={() => webviews[activeTabId]?.current?.goBack()} className="px-2">⟨</button>
-          <button onClick={() => webviews[activeTabId]?.current?.goForward()} className="px-2">⟩</button>
-          <button onClick={() => webviews[activeTabId]?.current?.reload()} className="px-2">⟳</button>
-          <input
-            ref={addressInput}
-            defaultValue={activeTab?.url}
-            onKeyDown={handleEnter}
-            onChange={handleAddressChange}
-            onFocus={() => {
+  <div className="h-screen w-screen flex bg-neutral-900 text-white font-sans">
+    <Sidebar isOpen={sidebarOpen} toggle={() => setSidebarOpen(!sidebarOpen)} />
+    <div className="flex-1 flex flex-col">
+      <div className="flex items-center gap-2 bg-gradient-to-r from-purple-800 to-indigo-900 p-2 shadow-md relative">
+        <button onClick={goHome} className="px-2" title="Home">🏠</button>
+        <button onClick={() => webviews[activeTabId]?.current?.goBack()} className="px-2">⟨</button>
+        <button onClick={() => webviews[activeTabId]?.current?.goForward()} className="px-2">⟩</button>
+        <button onClick={() => webviews[activeTabId]?.current?.reload()} className="px-2">⟳</button>
+        <input
+          ref={addressInput}
+          defaultValue={activeTab?.url}
+          onKeyDown={handleEnter}
+          onChange={handleAddressChange}
+          onFocus={() => {
             if (!Array.isArray(browserHistory)) return;
-
-            const recent = [...browserHistory]
-              .sort((a, b) =>
-  new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-)
-              .slice(0, 8);
-
+            const recent = [...browserHistory].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 8);
             setFilteredHistory(recent);
             setShowHistoryDropdown(true);
           }}
-
-            onBlur={() => setTimeout(() => setShowHistoryDropdown(false), 200)}
-            className="flex-1 px-3 py-1 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
-          />
-
-          {showHistoryDropdown && (
-            <div className="absolute top-14 left-48 right-4 z-50 bg-white text-black shadow-md rounded max-h-64 overflow-y-auto">
-              {Array.isArray(filteredHistory) && filteredHistory.length === 0 ? (
-  <div className="p-2 text-sm text-gray-600">No recent history</div>
-) : (
-  Array.isArray(filteredHistory) && filteredHistory.map((entry, i) => (
-    <div
-      key={i}
-      onMouseDown={() => {
-        if (addressInput.current) {
-          addressInput.current.value = entry.url;
-          navigate();
-          setShowHistoryDropdown(false);
-        }
-      }}
-      className="px-3 py-2 hover:bg-gray-200 cursor-pointer text-sm truncate"
-    >
-      {entry.url}
-    </div>
-  ))
-)}
-
+          onBlur={() => setTimeout(() => setShowHistoryDropdown(false), 200)}
+          className="flex-1 px-3 py-1 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+        />
+        {showHistoryDropdown && (
+          <div className="absolute top-14 left-48 right-4 z-50 bg-white text-black shadow-md rounded max-h-64 overflow-y-auto">
+            {Array.isArray(filteredHistory) && filteredHistory.length === 0 ? (
+              <div className="p-2 text-sm text-gray-600">No recent history</div>
+            ) : (
+              filteredHistory.map((entry, i) => (
+                <div
+                  key={i}
+                  onMouseDown={() => {
+                    if (addressInput.current) {
+                      addressInput.current.value = entry.url;
+                      navigate();
+                      setShowHistoryDropdown(false);
+                    }
+                  }}
+                  className="px-3 py-2 hover:bg-gray-200 cursor-pointer text-sm truncate"
+                >
+                  {entry.url}
+                </div>
+              ))
+            )}
+          </div>
+        )}
+        <button onClick={promptFavoriteSave} className="px-2 py-1 bg-yellow-500 text-black rounded hover:bg-yellow-400" title="Add to Favorites">⭐</button>
+        <button onClick={handleNewTab} className="px-2 py-1 bg-pink-600 rounded hover:bg-pink-500">➕</button>
+        <div className="relative settings-trigger">
+          <button
+            onClick={() => setShowSettingsMenu(prev => !prev)}
+            className="px-2 text-white hover:text-purple-400"
+            title="Menu"
+          >
+            <MoreVertical />
+          </button>
+          {showSettingsMenu && (
+            <div className="absolute right-0 top-full mt-2 w-48 bg-neutral-900 text-white rounded shadow z-50 settings-menu">
+              <button
+                className="block w-full text-left px-4 py-2 hover:bg-purple-600"
+                onClick={() => {
+                  const url = 'about:settings';
+                  const newId = Date.now();
+                  setTabs(prev => [...prev, { id: newId, title: 'Settings', url }]);
+                  setActiveTabId(newId);
+                  setShowSettingsMenu(false);
+                }}
+              >
+                Settings
+              </button>
+              <button
+                className="block w-full text-left px-4 py-2 hover:bg-purple-600"
+                onClick={() => {
+                  const url = 'about:extensions';
+                  const newId = Date.now();
+                  setTabs(prev => [...prev, { id: newId, title: 'Extensions', url }]);
+                  setActiveTabId(newId);
+                  setShowSettingsMenu(false);
+                }}
+              >
+                Extensions
+              </button>
+              <button
+                className="block w-full text-left px-4 py-2 hover:bg-purple-600"
+                onClick={() => {
+                  const url = 'about:history';
+                  const newId = Date.now();
+                  setTabs(prev => [...prev, { id: newId, title: 'History', url }]);
+                  setActiveTabId(newId);
+                  setShowSettingsMenu(false);
+                }}
+              >
+                Privacy And Security
+              </button>
             </div>
           )}
-
-          <button onClick={promptFavoriteSave} className="px-2 py-1 bg-yellow-500 text-black rounded hover:bg-yellow-400" title="Add to Favorites">⭐</button>
-          <button onClick={handleNewTab} className="px-2 py-1 bg-pink-600 rounded hover:bg-pink-500">➕</button>
-          <button onClick={() => setShowSettings(!showSettings)} className="text-white px-2" title="Settings">⚙️</button>
-        </div>
-
-        <Tabs tabs={tabs} activeTabId={activeTabId} setActiveTabId={setActiveTabId} handleCloseTab={handleCloseTab} />
-
-        <FavoritesBar
-          favorites={favorites}
-          onFavoriteClick={openFavorite}
-          onFavoriteDelete={deleteFavorite}
-          onFolderRename={renameFolder}
-          onFolderDelete={deleteFolder}
-        />
-
-        {showSettings && (
-  <div className="absolute top-16 right-4 bg-neutral-800 rounded shadow-lg z-50 w-96">
-    <SettingsTab />
-  </div>
-)}
-
-        <div className="flex-1 relative">
-          {tabs.map(tab => (
-            <webview
-              key={tab.id}
-              ref={webviews[tab.id]}
-              src={tab.url}
-              allowpopups="true"
-              webpreferences="nativeWindowOpen=yes, contextIsolation=true"
-              style={{
-                width: '100%',
-                height: '100%',
-                visibility: tab.id === activeTabId ? 'visible' : 'hidden',
-                position: tab.id === activeTabId ? 'relative' : 'absolute',
-                top: 0,
-                left: 0
-              }}
-            />
-          ))}
         </div>
       </div>
+
+      <Tabs
+        tabs={tabs}
+        activeTabId={activeTabId}
+        setActiveTabId={setActiveTabId}
+        handleCloseTab={handleCloseTab}
+      />
+
+      <FavoritesBar
+        favorites={favorites}
+        onFavoriteClick={openFavorite}
+        onFavoriteDelete={deleteFavorite}
+        onFolderRename={renameFolder}
+        onFolderDelete={deleteFolder}
+      />
+
+      <div className="flex-1 relative">
+  {tabs.map(tab => {
+    const isActive = tab.id === activeTabId;
+
+    if (tab.url === 'about:settings') {
+      return isActive ? (
+        <div key={tab.id} className="w-full h-full">
+          <SettingsTab />
+        </div>
+      ) : null;
+    }
+
+    if (tab.url === 'about:extensions') {
+      return isActive ? (
+        <div key={tab.id} className="w-full h-full text-white">
+          <ExtensionPage />
+        </div>
+      ) : null;
+    }
+
+    if (tab.url === 'about:history') {
+      return isActive ? (
+        <div key={tab.id} className="w-full h-full text-white">
+          <PrivacyAndSecurityPage />
+        </div>
+      ) : null;
+    }
+
+    if (tab.url === 'about:settings/clearbrowsingdata') {
+  return isActive ? (
+    <div key={tab.id} className="w-full h-full text-white">
+      <ClearBrowsingDataPage />
+    </div>
+  ) : null;
+}
+
+if (tab.url === 'about:settings/clearonclose') {
+  return isActive ? (
+    <div key={tab.id} className="w-full h-full text-white">
+      <ClearOnClosePage />
+    </div>
+  ) : null;
+}
+
+if (tab.url === 'about:settings/typoprotection') {
+  return isActive ? (
+    <div key={tab.id} className="w-full h-full text-white">
+      <TypoProtectionPage />
+    </div>
+  ) : null;
+}
+
+if (tab.url === 'about:settings/trackingprevention') {
+  return isActive ? (
+    <div key={tab.id} className="w-full h-full text-white">
+      <TrackingPreventionPage />
+    </div>
+  ) : null;
+}
+
+if (tab.url === 'about:settings/privacy') {
+  return isActive ? (
+    <div key={tab.id} className="w-full h-full text-white">
+      <PrivacyPage />
+    </div>
+  ) : null;
+}
+
+if (tab.url === 'about:settings/security') {
+  return isActive ? (
+    <div key={tab.id} className="w-full h-full text-white">
+      <SecurityPage />
+    </div>
+  ) : null;
+}
+
+if (tab.url === 'about:settings/connectedexperiences') {
+  return isActive ? (
+    <div key={tab.id} className="w-full h-full text-white">
+      <ConnectedExperiencesPage />
+    </div>
+  ) : null;
+}
+
+
+    return (
+      <webview
+        key={tab.id}
+        ref={webviews[tab.id]}
+        src={tab.url}
+        allowpopups="true"
+        webpreferences="nativeWindowOpen=yes, contextIsolation=true"
+        style={{
+          width: '100%',
+          height: '100%',
+          visibility: isActive ? 'visible' : 'hidden',
+          position: isActive ? 'relative' : 'absolute',
+          top: 0,
+          left: 0
+        }}
+      />
+    );
+  })}
+</div>
+
+    </div>
 
       {showFolderPrompt && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">

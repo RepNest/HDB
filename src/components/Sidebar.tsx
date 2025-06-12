@@ -62,7 +62,7 @@ const itdButtons: ITDButton[] = [
   { id: 'goToCitrixManager', text: 'Go to Citrix (Manager)', url: 'https://xenapp.cloud.com/manage/webstudio/home' },
 ];
 
-const defaultConfig = {
+const defaultConfig: Config = {
   apps: [
     { name: 'Notepad', command: 'notepad.exe' },
     { name: 'Calculator', command: 'calc.exe' },
@@ -92,8 +92,6 @@ const defaultConfig = {
     isDarkMode: true,
     buttonSize: 'medium',
   },
-  createdAt: '2025-01-01T00:00:00.000Z',
-  history: [],
 };
 
 export default function Sidebar({ isOpen, toggle }: SidebarProps) {
@@ -115,14 +113,15 @@ export default function Sidebar({ isOpen, toggle }: SidebarProps) {
   useEffect(() => {
     const loadConfig = async () => {
       try {
-        const config: Config = await window.electronAPI?.getConfig?.();
+        const config = await window.electronAPI?.getConfig?.();
         console.log('Sidebar config loaded:', config);
         if (config?.apps?.length) {
-          const appsOrder = config.itdTools?.appsOrder || config.apps.map((_, i) => i.toString());
-          const visibleApps = config.itdTools?.visibleApps || config.apps.map((_, i) => i.toString());
+          const appsOrder = config.itdTools?.appsOrder || config.apps.map((_: any, i: number) => i.toString());
+          const visibleApps = config.itdTools?.visibleApps || config.apps.map((_: any, i: number) => i.toString());
           const orderedApps = appsOrder
-            .map(id => config.apps[parseInt(id)])
-            .filter((app): app is AppButton => !!app && visibleApps.includes(id));
+            .map((id: string) => ({ id, app: config.apps[parseInt(id)] }))
+            .filter(({ app, id }): app is AppButton => !!app && visibleApps.includes(id))
+            .map(({ app }) => app);
           setApps(config.apps);
           setVisibleAppsIndices(visibleApps);
           console.log('Apps set:', config.apps, 'Visible indices:', visibleApps);
@@ -135,7 +134,7 @@ export default function Sidebar({ isOpen, toggle }: SidebarProps) {
         if (config?.itdTools?.buttonOrder) {
           const visibleButtons = config.itdTools?.visibleITDButtons || itdButtons.map(b => b.id);
           const orderedButtons = config.itdTools.buttonOrder
-            .map(id => itdButtons.find(b => b.id === id))
+            .map((id: string) => itdButtons.find(b => b.id === id))
             .filter((b): b is ITDButton => !!b && visibleButtons.includes(b.id));
           setITDToolsButtons(orderedButtons.length > 0 ? orderedButtons : itdButtons.filter(b => visibleButtons.includes(b.id)));
           setVisibleITDButtons(visibleButtons);
@@ -412,13 +411,13 @@ export default function Sidebar({ isOpen, toggle }: SidebarProps) {
     <div className={clsx(
       'h-full flex flex-col',
       isDarkMode ? 'bg-black text-white' : 'bg-gray-100 text-black',
-      isOpen ? 'w-64' : 'w-16'
+      isOpen ? 'w-72' : 'w-20'
     )}>
-      <div className="py-4 px-2">
-        <button onClick={toggle} className="mb-4 text-white hover:text-purple-600 self-center">☰</button>
+      <div className="py-5 px-3">
+        <button onClick={toggle} className="mb-5 text-2xl text-white hover:text-purple-600 self-center">☰</button>
       </div>
-      <div className="flex-1 overflow-y-auto sidebar-scroll px-2">
-        <div className={clsx('flex items-center justify-between text-sm mb-1', isOpen ? 'pl-2' : '', isDarkMode ? 'text-gray-400' : 'text-gray-600')}>
+      <div className="flex-1 overflow-y-auto sidebar-scroll px-3">
+        <div className={clsx('flex items-center justify-between text-base mb-2', isOpen ? 'pl-3' : '', isDarkMode ? 'text-gray-400' : 'text-gray-600')}>
           <span>Apps</span>
           {isOpen && (
             <button
@@ -436,7 +435,7 @@ export default function Sidebar({ isOpen, toggle }: SidebarProps) {
                   buttonSize
                 );
               }}
-              className={clsx('text-lg', isDarkMode ? 'text-white hover:text-purple-600' : 'text-black hover:text-purple-500')}
+              className={clsx('text-xl', isDarkMode ? 'text-white hover:text-purple-600' : 'text-black hover:text-purple-500')}
               title={isEditMode ? 'Exit Edit Mode' : 'Enter Edit Mode'}
             >
               ⚙️
@@ -459,19 +458,19 @@ export default function Sidebar({ isOpen, toggle }: SidebarProps) {
               onDrop={(e) => handleDrop(e, 'apps', idx)}
               onDragEnd={handleDragEnd}
               className={clsx(
-                'my-1 rounded-xl flex items-center',
+                'my-2 rounded-xl flex items-center',
                 isEditMode && isOpen && 'shake cursor-move'
               )}
             >
               <button
                 onClick={() => launchApp(app.command)}
                 className={clsx(
-                  'flex-1 py-2 px-2 rounded-xl transition-all flex items-center text-white',
-                  isOpen ? 'justify-start' : 'justify-center h-10',
+                  'flex-1 py-3 px-3 rounded-xl transition-all flex items-center text-white',
+                  isOpen ? 'justify-start' : 'justify-center h-12',
                   isEditMode && 'cursor-move',
                   buttonSize === 'small' && 'text-sm',
-                  buttonSize === 'medium' && 'text-base',
-                  buttonSize === 'large' && 'text-lg',
+                  buttonSize === 'medium' && 'text-lg',
+                  buttonSize === 'large' && 'text-xl',
                   buttonBackgroundColor === 'green-bg' && 'bg-green-500 hover:bg-green-600',
                   buttonBackgroundColor === 'purple-bg' && 'bg-purple-500 hover:bg-purple-600',
                   buttonBackgroundColor === 'blue-bg' && 'bg-blue-500 hover:bg-blue-600',
@@ -485,16 +484,16 @@ export default function Sidebar({ isOpen, toggle }: SidebarProps) {
                 disabled={isEditMode}
               >
                 {app.iconPath ? (
-                  <img src={app.iconPath} alt={app.name} className="w-5 h-5 mr-2" />
+                  <img src={app.iconPath} alt={app.name} className="w-6 h-6 mr-3" />
                 ) : (
-                  <span className="font-bold">{app.icon || app.name[0]}</span>
+                  <span className="font-bold text-lg">{app.icon || app.name[0]}</span>
                 )}
-                {isOpen && <span className="ml-2 truncate">{app.name}</span>}
+                {isOpen && <span className="ml-3 text-base truncate">{app.name}</span>}
               </button>
               {isEditMode && isOpen && (
                 <button
                   onClick={() => handleHideApp(appIndex)}
-                  className="ml-2 w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center hover:bg-red-600"
+                  className="ml-3 w-6 h-6 bg-red-500 rounded-full text-white text-sm flex items-center justify-center hover:bg-red-600"
                   title="Hide this app"
                 >
                   X
@@ -504,18 +503,18 @@ export default function Sidebar({ isOpen, toggle }: SidebarProps) {
           );
         })}
         {isEditMode && isOpen && apps.length > visibleAppsIndices.length && (
-          <div className="mt-2">
+          <div className="mt-3">
             {apps.map((app, idx) => {
               const indexStr = idx.toString();
               if (visibleAppsIndices.includes(indexStr)) return null;
               return (
-                <div key={indexStr} className="flex items-center my-1">
-                  <span className={clsx('flex-1 text-sm pl-2 truncate', isDarkMode ? 'text-white' : 'text-black')}>
+                <div key={indexStr} className="flex items-center my-2">
+                  <span className={clsx('flex-1 text-base pl-3 truncate', isDarkMode ? 'text-white' : 'text-black')}>
                     {app.name}
                   </span>
                   <button
                     onClick={() => handleUnhideApp(indexStr)}
-                    className="w-5 h-5 bg-green-500 rounded-full text-white text-xs flex items-center justify-center hover:bg-green-600"
+                    className="w-6 h-6 bg-green-500 rounded-full text-white text-sm flex items-center justify-center hover:bg-green-600"
                     title="Unhide this app"
                   >
                     +
@@ -526,7 +525,7 @@ export default function Sidebar({ isOpen, toggle }: SidebarProps) {
           </div>
         )}
 
-        <div className={clsx('text-sm mt-4 mb-1', isOpen ? 'pl-2' : '', isDarkMode ? 'text-gray-400' : 'text-gray-600')}>
+        <div className={clsx('text-base mt-5 mb-2', isOpen ? 'pl-3' : '', isDarkMode ? 'text-gray-400' : 'text-gray-600')}>
           ITD Tools
         </div>
         {itdToolsButtons.map((button, idx) => (
@@ -539,7 +538,7 @@ export default function Sidebar({ isOpen, toggle }: SidebarProps) {
             onDrop={(e) => handleDrop(e, 'itdTools', idx)}
             onDragEnd={handleDragEnd}
             className={clsx(
-              'my-1 rounded-xl flex items-center flex-col',
+              'my-2 rounded-xl flex items-center flex-col',
               isEditMode && isOpen && 'shake cursor-move'
             )}
           >
@@ -547,12 +546,12 @@ export default function Sidebar({ isOpen, toggle }: SidebarProps) {
               <button
                 onClick={() => handleITDButtonClick(button)}
                 className={clsx(
-                  'flex-1 py-2 px-2 rounded-xl transition-all flex items-center text-white',
-                  isOpen ? 'justify-start' : 'justify-center h-10',
+                  'flex-1 py-3 px-3 rounded-xl transition-all flex items-center text-white',
+                  isOpen ? 'justify-start' : 'justify-center h-12',
                   isEditMode && 'cursor-move',
                   buttonSize === 'small' && 'text-sm',
-                  buttonSize === 'medium' && 'text-base',
-                  buttonSize === 'large' && 'text-lg',
+                  buttonSize === 'medium' && 'text-lg',
+                  buttonSize === 'large' && 'text-xl',
                   buttonBackgroundColor === 'green-bg' && 'bg-green-500 hover:bg-green-600',
                   buttonBackgroundColor === 'purple-bg' && 'bg-purple-500 hover:bg-purple-600',
                   buttonBackgroundColor === 'blue-bg' && 'bg-blue-500 hover:bg-blue-600',
@@ -565,10 +564,10 @@ export default function Sidebar({ isOpen, toggle }: SidebarProps) {
                 title={button.text}
                 disabled={isEditMode}
               >
-                <span className="font-bold">{button.text[0]}</span>
-                {isOpen && <span className="ml-2 truncate">{button.text}</span>}
+                <span className="font-bold text-lg">{button.text[0]}</span>
+                {isOpen && <span className="ml-3 text-base truncate">{button.text}</span>}
                 {button.submenu && isOpen && (
-                  <span className="ml-2">
+                  <span className="ml-3 text-lg">
                     {activeDropdown === button.id ? '▲' : '▼'}
                   </span>
                 )}
@@ -576,7 +575,7 @@ export default function Sidebar({ isOpen, toggle }: SidebarProps) {
               {isEditMode && isOpen && (
                 <button
                   onClick={() => handleHideITDButton(button.id)}
-                  className="ml-2 w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center hover:bg-red-600"
+                  className="ml-3 w-6 h-6 bg-red-500 rounded-full text-white text-sm flex items-center justify-center hover:bg-red-600"
                   title="Hide this button"
                 >
                   X
@@ -584,13 +583,13 @@ export default function Sidebar({ isOpen, toggle }: SidebarProps) {
               )}
             </div>
             {(button.id === 'goToNSD' || button.id === 'goToEAMS') && activeDropdown === button.id && button.submenu && isOpen && !isEditMode && (
-              <div className="w-full mt-1">
+              <div className="w-full mt-2">
                 {button.submenu.map(subItem => (
                   <button
                     key={subItem.id}
                     onClick={() => handleSubmenuClick(subItem)}
                     className={clsx(
-                      'block w-full text-left py-1 px-2 rounded text-sm',
+                      'block w-full text-left py-2 px-3 rounded text-base',
                       isDarkMode ? 'bg-gray-900 hover:bg-purple-600 text-white' : 'bg-gray-300 hover:bg-purple-500 text-black'
                     )}
                   >
@@ -601,7 +600,7 @@ export default function Sidebar({ isOpen, toggle }: SidebarProps) {
             )}
             {activeInputMenu === 'active-directory-search' && button.id === 'goToNSD' && isOpen && !isEditMode && (
               <div className={clsx(
-                'w-full mt-1 rounded p-2',
+                'w-full mt-2 rounded p-3',
                 isDarkMode ? 'bg-gray-900' : 'bg-gray-300'
               )}>
                 <input
@@ -611,15 +610,15 @@ export default function Sidebar({ isOpen, toggle }: SidebarProps) {
                   onChange={(e) => setUserId(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleInputSubmit()}
                   className={clsx(
-                    'w-full px-2 py-1 rounded text-sm',
+                    'w-full px-3 py-2 rounded text-base',
                     isDarkMode ? 'bg-gray-800 text-white' : 'bg-gray-200 text-black'
                   )}
                   autoFocus
                 />
-                <div className="flex space-x-2 mt-2">
+                <div className="flex space-x-3 mt-3">
                   <button
                     onClick={handleInputSubmit}
-                    className="px-2 py-1 bg-purple-600 rounded text-sm text-white hover:bg-purple-500"
+                    className="px-3 py-2 bg-purple-600 rounded text-base text-white hover:bg-purple-500"
                   >
                     Submit
                   </button>
@@ -629,7 +628,7 @@ export default function Sidebar({ isOpen, toggle }: SidebarProps) {
                       setUserId('');
                     }}
                     className={clsx(
-                      'px-2 py-1 rounded text-sm',
+                      'px-3 py-2 rounded text-base',
                       isDarkMode ? 'bg-gray-600 text-white hover:bg-gray-500' : 'bg-gray-400 text-black hover:bg-gray-300'
                     )}
                   >
@@ -639,13 +638,13 @@ export default function Sidebar({ isOpen, toggle }: SidebarProps) {
               </div>
             )}
             {!(button.id === 'goToNSD' || button.id === 'goToEAMS') && activeDropdown === button.id && button.submenu && isOpen && !isEditMode && (
-              <div className="ml-4 mt-1">
+              <div className="ml-5 mt-2">
                 {button.submenu.map(subItem => (
                   <button
                     key={subItem.id}
                     onClick={() => handleSubmenuClick(subItem)}
                     className={clsx(
-                      'block w-full text-left py-1 px-2 rounded text-sm',
+                      'block w-full text-left py-2 px-3 rounded text-base',
                       isDarkMode ? 'bg-gray-900 hover:bg-purple-600 text-white' : 'bg-gray-300 hover:bg-purple-500 text-black'
                     )}
                   >
@@ -657,17 +656,17 @@ export default function Sidebar({ isOpen, toggle }: SidebarProps) {
           </div>
         ))}
         {isEditMode && isOpen && itdButtons.length > visibleITDButtons.length && (
-          <div className="mt-2">
+          <div className="mt-3">
             {itdButtons.map(button => {
               if (visibleITDButtons.includes(button.id)) return null;
               return (
-                <div key={button.id} className="flex items-center my-1">
-                  <span className={clsx('flex-1 text-sm pl-2 truncate', isDarkMode ? 'text-white' : 'text-black')}>
+                <div key={button.id} className="flex items-center my-2">
+                  <span className={clsx('flex-1 text-base pl-3 truncate', isDarkMode ? 'text-white' : 'text-black')}>
                     {button.text}
                   </span>
                   <button
                     onClick={() => handleUnhideITDButton(button.id)}
-                    className="w-5 h-5 bg-green-500 rounded-full text-white text-xs flex items-center justify-center hover:bg-green-600"
+                    className="w-6 h-6 bg-green-500 rounded-full text-white text-sm flex items-center justify-center hover:bg-green-600"
                     title="Unhide this button"
                   >
                     +
@@ -680,19 +679,19 @@ export default function Sidebar({ isOpen, toggle }: SidebarProps) {
 
         {isEditMode && isOpen && (
           <div className={clsx(
-            'mt-4 p-2 rounded',
+            'mt-5 p-3 rounded',
             isDarkMode ? 'bg-gray-800' : 'bg-gray-200'
           )}>
-            <div className="mb-2">
-              <span className={clsx('text-sm', isDarkMode ? 'text-gray-400' : 'text-gray-600')}>
+            <div className="mb-3">
+              <span className={clsx('text-base', isDarkMode ? 'text-gray-400' : 'text-gray-600')}>
                 Button Background Color
               </span>
-              <div className="flex flex-wrap gap-2 mt-1">
+              <div className="flex flex-wrap gap-3 mt-2">
                 {['green-bg', 'purple-bg', 'blue-bg', 'red-bg', 'orange-bg', 'pink-bg', 'yellow-bg', 'gray-bg'].map(color => (
                   <button
                     key={color}
                     className={clsx(
-                      'w-6 h-6 rounded-full',
+                      'w-8 h-8 rounded-full',
                       color === 'green-bg' && 'bg-green-500',
                       color === 'purple-bg' && 'bg-purple-500',
                       color === 'blue-bg' && 'bg-blue-500',
@@ -709,14 +708,14 @@ export default function Sidebar({ isOpen, toggle }: SidebarProps) {
                 ))}
               </div>
             </div>
-            <div className="mb-2 flex items-center">
-              <span className={clsx('text-sm mr-2', isDarkMode ? 'text-gray-400' : 'text-gray-600')}>
+            <div className="mb-3 flex items-center">
+              <span className={clsx('text-base mr-3', isDarkMode ? 'text-gray-400' : 'text-gray-600')}>
                 Theme
               </span>
               <button
                 onClick={handleThemeChange}
                 className={clsx(
-                  'w-8 h-8 rounded-full flex items-center justify-center',
+                  'w-10 h-10 rounded-full flex items-center justify-center',
                   isDarkMode ? 'bg-gray-600 text-yellow-400' : 'bg-gray-300 text-gray-800'
                 )}
                 title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
@@ -725,7 +724,7 @@ export default function Sidebar({ isOpen, toggle }: SidebarProps) {
               </button>
             </div>
             <div>
-              <span className={clsx('text-sm', isDarkMode ? 'text-gray-400' : 'text-gray-600')}>
+              <span className={clsx('text-base', isDarkMode ? 'text-gray-400' : 'text-gray-600')}>
                 Button Size
               </span>
               <input
@@ -734,10 +733,15 @@ export default function Sidebar({ isOpen, toggle }: SidebarProps) {
                 max="3"
                 value={{ small: 1, medium: 2, large: 3 }[buttonSize]}
                 onChange={(e) => {
-                  const sizeMap = { '1': 'small', '2': 'medium', '3': 'large' };
-                  handleSizeChange(sizeMap[e.target.value] as 'small' | 'medium' | 'large');
+                  const sizeMap: { [key in '1' | '2' | '3']: 'small' | 'medium' | 'large' } = {
+                    '1': 'small',
+                    '2': 'medium',
+                    '3': 'large',
+                  };
+                  const value = e.target.value as '1' | '2' | '3';
+                  handleSizeChange(sizeMap[value]);
                 }}
-                className="w-full mt-1"
+                className="w-full mt-2"
               />
             </div>
           </div>

@@ -120,8 +120,8 @@ export default function Sidebar({ isOpen, toggle }: SidebarProps) {
           const visibleApps = config.itdTools?.visibleApps || config.apps.map((_: any, i: number) => i.toString());
           const orderedApps = appsOrder
             .map((id: string) => ({ id, app: config.apps[parseInt(id)] }))
-            .filter(({ app, id }): app is AppButton => !!app && visibleApps.includes(id))
-            .map(({ app }) => app);
+            .filter(item => item.app !== undefined && visibleApps.includes(item.id))
+            .map(item => item.app as AppButton); // Type assertion after filter
           setApps(config.apps);
           setVisibleAppsIndices(visibleApps);
           console.log('Apps set:', config.apps, 'Visible indices:', visibleApps);

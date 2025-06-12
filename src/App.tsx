@@ -42,13 +42,13 @@ declare global {
   }
 }
 
-type Tab = { id: number; title: string; url: string; favicon?: string };
+type Tab = { id: number; title: string; url: string; favicon?: string; isNew?: boolean };
 type Favorite = { name: string; url: string; favicon?: string };
 
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [tabs, setTabs] = useState<Tab[]>([
-    { id: 1, title: 'ITD Intra', url: 'https://miamidadecounty.sharepoint.com/sites/ITD-Intra' },
+    { id: 1, title: 'ITD Intra', url: 'https://miamidadecounty.sharepoint.com/sites/ITD-Intra', isNew: false },
   ]);
   const [activeTabId, setActiveTabId] = useState(1);
   const [closedTabs, setClosedTabs] = useState<Tab[]>([]);
@@ -101,9 +101,13 @@ export default function App() {
 
   const handleNewTab = (url: string = 'https://www.google.com') => {
     const newId = Date.now();
-    const newTab = { id: newId, title: url.startsWith('http') ? url : 'New Tab', url };
+    const newTab = { id: newId, title: url.startsWith('http') ? url : 'New Tab', url, isNew: true };
     setTabs(prev => [...prev, newTab]);
     setActiveTabId(newId);
+  };
+
+  const markTabAsNotNew = (id: number) => {
+    setTabs(prev => prev.map(tab => tab.id === id ? { ...tab, isNew: false } : tab));
   };
 
   const handleCloseTab = (id: number) => {
@@ -269,6 +273,7 @@ export default function App() {
             activeTabId={activeTabId}
             setActiveTabId={setActiveTabId}
             handleCloseTab={handleCloseTab}
+            markTabAsNotNew={markTabAsNotNew}
           />
           <button
             onClick={() => handleNewTab()}

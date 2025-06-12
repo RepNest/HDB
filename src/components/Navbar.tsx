@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronLeftIcon, ChevronRightIcon, ArrowPathIcon, HomeIcon, MinusIcon, PlusIcon, Bars3Icon, PencilIcon } from '@heroicons/react/24/solid';
 
 interface NavbarProps {
   webviewRef: React.RefObject<any>;
@@ -30,12 +31,15 @@ const Navbar: React.FC<NavbarProps> = ({
   zoom,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [customizeOpen, setCustomizeOpen] = useState(false);
   const addressInput = useRef<HTMLInputElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const customizeButtonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const customizeRef = useRef<HTMLDivElement>(null);
 
-  // Close menu on outside click
-  React.useEffect(() => {
+  // Close menu and customize panel on outside click
+  useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
         menuRef.current &&
@@ -44,6 +48,14 @@ const Navbar: React.FC<NavbarProps> = ({
         !menuButtonRef.current.contains(e.target as Node)
       ) {
         setMenuOpen(false);
+      }
+      if (
+        customizeRef.current &&
+        !customizeRef.current.contains(e.target as Node) &&
+        customizeButtonRef.current &&
+        !customizeButtonRef.current.contains(e.target as Node)
+      ) {
+        setCustomizeOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -63,36 +75,40 @@ const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <div
-      className="flex items-center bg-gradient-to-r from-purple-800 to-indigo-900 p-1 shadow-md"
+      className="flex items-center bg-gradient-to-r from-purple-800 to-indigo-900 p-1 shadow-md relative"
       style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }}
     >
       <div className="flex items-center gap-1">
         <button
           onClick={() => webviewRef.current?.loadURL('https://miamidadecounty.sharepoint.com/sites/ITServiceDesk')}
-          className="px-4 py-2 text-lg bg-gray-800 text-white rounded hover:bg-gray-700 shadow-md border-2 border-gray-600"
+          className="w-10 h-10 flex items-center justify-center text-white hover:bg-gray-800 hover:shadow-md rounded-full transition-all"
+          title="Home"
         >
-          🏠
+          <HomeIcon className="w-5 h-5" />
         </button>
       </div>
-      <div className="flex-1 flex items-center gap-1">
+      <div className="flex-1 flex items-center gap-1 ml-2">
         <div className="flex items-center gap-1">
           <button
             onClick={() => webviewRef.current?.goBack()}
-            className="px-4 py-2 text-lg bg-gray-800 text-white rounded hover:bg-gray-700 shadow-md border-2 border-gray-600"
+            className="w-10 h-10 flex items-center justify-center text-white hover:bg-gray-800 hover:shadow-md rounded-full transition-all"
+            title="Back"
           >
-            ←
+            <ChevronLeftIcon className="w-5 h-5" />
           </button>
           <button
             onClick={() => webviewRef.current?.goForward()}
-            className="px-4 py-2 text-lg bg-gray-800 text-white rounded hover:bg-gray-700 shadow-md border-2 border-gray-600"
+            className="w-10 h-10 flex items-center justify-center text-white hover:bg-gray-800 hover:shadow-md rounded-full transition-all"
+            title="Forward"
           >
-            →
+            <ChevronRightIcon className="w-5 h-5" />
           </button>
           <button
             onClick={() => webviewRef.current?.reload()}
-            className="px-4 py-2 text-lg bg-gray-800 text-white rounded hover:bg-gray-700 shadow-md border-2 border-gray-600"
+            className="w-10 h-10 flex items-center justify-center text-white hover:bg-gray-800 hover:shadow-md rounded-full transition-all"
+            title="Reload"
           >
-            ⟳
+            <ArrowPathIcon className="w-5 h-5" />
           </button>
         </div>
         <div className="flex-1 flex justify-center min-w-0">
@@ -104,13 +120,21 @@ const Navbar: React.FC<NavbarProps> = ({
           />
         </div>
         <div className="flex items-center gap-1 ml-auto mr-6">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <button
               onClick={onZoomOut}
-              className="px-4 py-2 text-xl bg-gray-900 text-white rounded-lg hover:bg-gray-800 shadow-sm border border-gray-700"
+              className="w-10 h-10 flex items-center justify-center text-white hover:bg-gray-800 hover:shadow-md rounded-full transition-all"
               title="Zoom out"
             >
-              −
+              <MinusIcon className="w-5 h-5" />
+            </button>
+            <button
+              ref={customizeButtonRef}
+              onClick={() => setCustomizeOpen(!customizeOpen)}
+              className="w-10 h-10 flex items-center justify-center text-white hover:bg-gray-800 hover:shadow-md rounded-full transition-all"
+              title="Customize Spartan"
+            >
+              <PencilIcon className="w-5 h-5" />
             </button>
             <button
               onClick={onResetZoom}
@@ -121,19 +145,19 @@ const Navbar: React.FC<NavbarProps> = ({
             </button>
             <button
               onClick={onZoomIn}
-              className="px-4 py-2 text-xl bg-gray-900 text-white rounded-lg hover:bg-gray-800 shadow-sm border border-gray-700"
+              className="w-10 h-10 flex items-center justify-center text-white hover:bg-gray-800 hover:shadow-md rounded-full transition-all"
               title="Zoom in"
             >
-              +
+              <PlusIcon className="w-5 h-5" />
             </button>
           </div>
           <button
             ref={menuButtonRef}
             onClick={() => setMenuOpen(!menuOpen)}
-            className="px-4 py-2 text-xl bg-gray-900 text-white rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-600 shadow-sm border border-gray-700"
+            className="w-10 h-10 flex items-center justify-center text-white hover:bg-gray-800 hover:shadow-md rounded-full transition-all"
             title="More options"
           >
-            ⋮
+            <Bars3Icon className="w-5 h-5" />
           </button>
           <AnimatePresence>
             {menuOpen && (
@@ -179,6 +203,27 @@ const Navbar: React.FC<NavbarProps> = ({
                     New private window
                   </button>
                 </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <AnimatePresence>
+            {customizeOpen && (
+              <motion.div
+                ref={customizeRef}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className="absolute bg-gray-900 border border-gray-700 rounded-md shadow-md p-4 z-50"
+                style={{
+                  top: 60, // Approximate height of navbar (~40px) + favorites bar (~20px)
+                  left: 0,
+                  right: 0,
+                  margin: '0 16px',
+                }}
+              >
+                <h2 className="text-lg font-semibold text-white mb-2">Customize Spartan</h2>
+                <p className="text-white">Customization options will be added here.</p>
               </motion.div>
             )}
           </AnimatePresence>

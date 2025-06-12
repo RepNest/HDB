@@ -5,7 +5,7 @@ import Navbar from './components/Navbar';
 import Tabs from './components/Tabs';
 import clsx from 'clsx';
 
-// Define electronAPI interface
+// Define electronAPI interface (aligned with electron.d.ts)
 interface ElectronAPI {
   launchApp: (cmd: string) => void;
   getConfig: () => Promise<{
@@ -71,14 +71,12 @@ export default function App() {
         const loadedFavorites = config?.favorites;
         if (loadedFavorites && typeof loadedFavorites === 'object' && !Array.isArray(loadedFavorites)) {
           setFavorites(loadedFavorites);
-        } else if (Array.isArray(loadedFavorites)) {
-          setFavorites({ ' ': loadedFavorites });
         } else {
-          setFavorites({});
+          setFavorites({ ' ': [] });
         }
       } catch (err) {
         console.error('Failed to load favorites:', err);
-        setFavorites({});
+        setFavorites({ ' ': [] });
       }
     };
     loadFavorites();
@@ -266,8 +264,7 @@ export default function App() {
     >
       <Sidebar isOpen={sidebarOpen} toggle={() => setSidebarOpen(!sidebarOpen)} />
       <div className="flex-1 flex flex-col">
-        {/* Tabs Bar */}
-        <div className="flex space-x-2 px-3 py-2 bg-black border-b border-gray-800 overflow-x-auto">
+        <div className="flex space-x-2 px-3 py-2 bg-black border-b border-gray-800 overflow-x-auto z-[1000]">
           <Tabs
             tabs={tabs}
             activeTabId={activeTabId}
@@ -283,8 +280,7 @@ export default function App() {
             ➕
           </button>
         </div>
-        {/* Navigation and Favorites Bars */}
-        <div className="flex flex-col w-full">
+        <div className="flex flex-col w-full z-[1000]">
           <Navbar
             url={activeTab?.url || ''}
             webviewRef={webviews[activeTabId]}
@@ -300,15 +296,14 @@ export default function App() {
           />
           <FavoritesBar onFavoriteClick={openFavorite} />
         </div>
-        {/* Webview */}
-        <div className="flex-1 relative">
+        <div className="flex-1 relative z-0">
           {tabs.map(tab =>
             tab.id === activeTabId ? (
               <webview
                 key={tab.id}
                 ref={webviews[tab.id]}
                 src={tab.url}
-                style={{ width: '100%', height: '100%' }}
+                style={{ width: '100%', height: '100%', zIndex: -1 }}
               />
             ) : null
           )}

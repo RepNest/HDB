@@ -32,7 +32,7 @@ export default function FavoritesBar({ onFavoriteClick }: FavoritesBarProps) {
   }, []);
 
   return (
-    <div className="flex bg-neutral-800 px-2 py-1 border-b border-gray-700 overflow-x-auto">
+    <div className="flex bg-neutral-800 px-2 py-1 border-b border-gray-700 overflow-x-auto z-[1000]">
       {favorites.map((fav, idx) => (
         <button
           key={idx}

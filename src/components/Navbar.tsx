@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeftIcon, ChevronRightIcon, ArrowPathIcon, HomeIcon, MinusIcon, PlusIcon, Bars3Icon, PencilIcon } from '@heroicons/react/24/solid';
+import { ChevronLeftIcon, ChevronRightIcon, ArrowPathIcon, MinusIcon, PlusIcon, Bars3Icon } from '@heroicons/react/24/solid';
 
 interface NavbarProps {
   webviewRef: React.RefObject<any>;
@@ -38,6 +38,21 @@ const Navbar: React.FC<NavbarProps> = ({
   const menuRef = useRef<HTMLDivElement>(null);
   const customizeRef = useRef<HTMLDivElement>(null);
 
+  // Create a root div for the customize panel
+  useEffect(() => {
+    let root = document.getElementById('customize-spartan-root');
+    if (!root) {
+      root = document.createElement('div');
+      root.id = 'customize-spartan-root';
+      document.body.appendChild(root);
+    }
+    return () => {
+      if (root && !customizeOpen) {
+        document.body.removeChild(root);
+      }
+    };
+  }, [customizeOpen]);
+
   // Close menu and customize panel on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -73,9 +88,36 @@ const Navbar: React.FC<NavbarProps> = ({
     if (e.key === 'Enter') handleNavigate();
   };
 
+  // Render the customize panel in the root div
+  const renderCustomizePanel = () => {
+    const root = document.getElementById('customize-spartan-root');
+    if (!root) return null;
+
+    return (
+      <motion.div
+        ref={customizeRef}
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -10 }}
+        transition={{ duration: 0.2 }}
+        className="absolute bg-gray-900 border border-gray-700 rounded-md shadow-md p-4 z-[10000]"
+        style={{
+          top: 60, // Height of navbar (~40px) + favorites bar (~20px)
+          right: customizeButtonRef.current
+            ? window.innerWidth - customizeButtonRef.current.getBoundingClientRect().right + 16
+            : 16,
+          minWidth: '20rem',
+        }}
+      >
+        <h2 className="text-lg font-semibold text-white mb-2">Customize Spartan</h2>
+        <p className="text-white">Customization options will be added here.</p>
+      </motion.div>
+    );
+  };
+
   return (
     <div
-      className="flex items-center bg-gradient-to-r from-purple-800 to-indigo-900 p-1 shadow-md relative"
+      className="flex items-center bg-gradient-to-r from-purple-800 to-indigo-900 p-1 shadow-md relative z-[1000]"
       style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }}
     >
       <div className="flex items-center gap-1">
@@ -84,7 +126,7 @@ const Navbar: React.FC<NavbarProps> = ({
           className="w-10 h-10 flex items-center justify-center text-white hover:bg-gray-800 hover:shadow-md rounded-full transition-all"
           title="Home"
         >
-          <HomeIcon className="w-5 h-5" />
+          <span className="text-2xl">🏠</span>
         </button>
       </div>
       <div className="flex-1 flex items-center gap-1 ml-2">
@@ -122,19 +164,19 @@ const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center gap-1 ml-auto mr-6">
           <div className="flex items-center gap-1">
             <button
-              onClick={onZoomOut}
-              className="w-10 h-10 flex items-center justify-center text-white hover:bg-gray-800 hover:shadow-md rounded-full transition-all"
-              title="Zoom out"
-            >
-              <MinusIcon className="w-5 h-5" />
-            </button>
-            <button
               ref={customizeButtonRef}
               onClick={() => setCustomizeOpen(!customizeOpen)}
               className="w-10 h-10 flex items-center justify-center text-white hover:bg-gray-800 hover:shadow-md rounded-full transition-all"
               title="Customize Spartan"
             >
-              <PencilIcon className="w-5 h-5" />
+              <span className="text-2xl">✏️</span>
+            </button>
+            <button
+              onClick={onZoomOut}
+              className="w-10 h-10 flex items-center justify-center text-white hover:bg-gray-800 hover:shadow-md rounded-full transition-all"
+              title="Zoom out"
+            >
+              <MinusIcon className="w-5 h-5" />
             </button>
             <button
               onClick={onResetZoom}
@@ -167,7 +209,7 @@ const Navbar: React.FC<NavbarProps> = ({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2 }}
-                className="absolute bg-gray-900 border border-gray-700 rounded-lg shadow-md p-2 z-50"
+                className="absolute bg-gray-900 border border-gray-700 rounded-lg shadow-md p-2 z-[1000]"
                 style={{
                   top: menuButtonRef.current ? menuButtonRef.current.getBoundingClientRect().bottom + 4 : 0,
                   right: 16,
@@ -206,29 +248,9 @@ const Navbar: React.FC<NavbarProps> = ({
               </motion.div>
             )}
           </AnimatePresence>
-          <AnimatePresence>
-            {customizeOpen && (
-              <motion.div
-                ref={customizeRef}
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-                className="absolute bg-gray-900 border border-gray-700 rounded-md shadow-md p-4 z-50"
-                style={{
-                  top: 60, // Approximate height of navbar (~40px) + favorites bar (~20px)
-                  left: 0,
-                  right: 0,
-                  margin: '0 16px',
-                }}
-              >
-                <h2 className="text-lg font-semibold text-white mb-2">Customize Spartan</h2>
-                <p className="text-white">Customization options will be added here.</p>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
       </div>
+      {customizeOpen && renderCustomizePanel()}
     </div>
   );
 };

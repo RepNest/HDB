@@ -6,7 +6,7 @@ interface Tab {
   title: string;
   url: string;
   favicon?: string;
-  isNew?: boolean; // Flag for new tabs
+  isNew?: boolean;
 }
 
 interface TabsProps {
@@ -14,12 +14,12 @@ interface TabsProps {
   activeTabId: number;
   setActiveTabId: (id: number) => void;
   handleCloseTab: (id: number) => void;
-  markTabAsNotNew: (id: number) => void; // Callback to clear isNew
+  markTabAsNotNew: (id: number) => void;
 }
 
 export default function Tabs({ tabs, activeTabId, setActiveTabId, handleCloseTab, markTabAsNotNew }: TabsProps) {
   return (
-    <div className="flex space-x-4 px-4 py-3 bg-black border-b border-gray-800 overflow-x-auto">
+    <div className="flex space-x-4 px-4 py-3 bg-black border-b border-gray-800 overflow-x-auto z-[1000]">
       {tabs.map(tab => (
         <div
           key={tab.id}
@@ -27,10 +27,10 @@ export default function Tabs({ tabs, activeTabId, setActiveTabId, handleCloseTab
           className={clsx(
             'px-6 py-3 rounded-md text-lg font-semibold cursor-pointer transition-all flex items-center gap-3',
             tab.id === activeTabId ? 'bg-pink-600' : 'bg-gray-700 hover:bg-gray-600',
-            tab.isNew ? 'animate-new-tab opacity-0 translate-x-4' : 'opacity-100 translate-x-0' // Animation for new tabs
+            tab.isNew ? 'animate-new-tab opacity-0 translate-x-4' : 'opacity-100 translate-x-0'
           )}
           title={tab.title}
-          onAnimationEnd={() => tab.isNew && markTabAsNotNew(tab.id)} // Clear isNew after animation
+          onAnimationEnd={() => tab.isNew && markTabAsNotNew(tab.id)}
         >
           {tab.favicon && (
             <img

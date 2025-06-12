@@ -2,21 +2,7 @@ export {};
 
 declare global {
   interface Window {
-    electronAPI: {
-      saveHistory(updated: { url: string; timestamp: string; }[]): unknown;
-      getHistory(): unknown;
-      getConfig(): Promise<{
-        history: never[];
-        sidebarCollapsed: boolean;
-        favorites: { name: string; url: string }[];
-        apps: { name: string; command: string }[];
-        createdAt: string;
-      }>;
-      launchApp: (cmd: string) => void;
-      showContextMenu: () => void;
-      saveFavorite: (fav: { name: string; url: string }) => Promise<boolean>;
-      saveFavorites?: (favorites: { name: string; url: string }[]) => void;
-    };
+    electronAPI: import('./electron').ElectronAPI;
   }
 
   namespace JSX {

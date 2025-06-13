@@ -1,10 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import clsx from 'clsx'; // Add this import
-
-interface FavoritesBarProps {
-  onFavoriteClick: (url: string) => void;
-  navColor: string;
-}
+import React, { useState } from 'react';
+import clsx from 'clsx';
+import { ChevronDownIcon } from '@heroicons/react/24/solid';
 
 interface Favorite {
   name: string;
@@ -12,42 +8,72 @@ interface Favorite {
   favicon?: string;
 }
 
-export default function FavoritesBar({ onFavoriteClick, navColor }: FavoritesBarProps) {
-  const [favorites, setFavorites] = useState<Favorite[]>([]);
+interface FavoritesBarProps {
+  favorites: { [folder: string]: Favorite[] };
+  onNavigate: (url: string) => void;
+  navColor: string;
+  isDarkMode: boolean; // Added to control theme
+}
 
-  useEffect(() => {
-    const loadFavorites = async () => {
-      try {
-        const config = await window.electronAPI?.getConfig?.();
-        if (config?.favorites && typeof config.favorites === 'object' && !Array.isArray(config.favorites)) {
-          const allFavorites = Object.values(config.favorites).flat() as Favorite[];
-          setFavorites(allFavorites);
-        } else {
-          setFavorites([]);
-        }
-      } catch (err) {
-        console.error("FavoritesBar config load failed:", err);
-        setFavorites([]);
-      }
-    };
-    loadFavorites();
-  }, []);
+const FavoritesBar: React.FC<FavoritesBarProps> = ({ favorites, onNavigate, navColor, isDarkMode }) => {
+  const [openFolder, setOpenFolder] = useState<string | null>(null);
+
+  const toggleFolder = (folder: string) => {
+    setOpenFolder(openFolder === folder ? null : folder);
+  };
 
   return (
-    <div className={clsx('flex px-2 py-1 border-b border-gray-800 dark:border-gray-300 overflow-x-auto z-[1000]', `bg-${navColor}-600 dark:bg-${navColor}-300`)}>
-      {favorites.map((fav, idx) => (
-        <button
-          key={idx}
-          onClick={() => onFavoriteClick(fav.url)}
-          className={clsx(
-            'text-sm text-white dark:text-gray-900 px-3 py-1 rounded-full mx-1 transition-all',
-            `bg-${navColor}-700 dark:bg-${navColor}-200 hover:bg-${navColor}-800 dark:hover:bg-${navColor}-400`
+    <div
+      className={clsx(
+        'flex items-center p-2 border-b z-[800]',
+        isDarkMode ? `bg-gray-800 border-gray-700 bg-${navColor}-900/20` : `bg-gray-50 border-gray-300 bg-${navColor}-50`
+      )}
+    >
+      {Object.entries(favorites).map(([folder, items]) => (
+        <div key={folder} className="relative">
+          <button
+            onClick={() => toggleFolder(folder)}
+            className={clsx(
+              'flex items-center px-3 py-1 rounded transition-all',
+              isDarkMode ? 'text-white hover:bg-gray-700' : 'text-gray-900 hover:bg-gray-100'
+            )}
+          >
+            <span>{folder || 'Favorites'}</span>
+            <ChevronDownIcon
+              className={clsx('w-4 h-4 ml-1', isDarkMode ? 'fill-white' : 'fill-gray-900')}
+            />
+          </button>
+          {openFolder === folder && (
+            <div
+              className={clsx(
+                'absolute top-full left-0 mt-1 rounded shadow-md z-[810]',
+                isDarkMode ? 'bg-neutral-900 border-gray-700' : 'bg-gray-100 border-gray-300'
+              )}
+            >
+              {items.map((item, index) => (
+                <button
+                  key={index}
+                  onClick={() => {
+                    onNavigate(item.url);
+                    setOpenFolder(null);
+                  }}
+                  className={clsx(
+                    'block w-full text-left px-4 py-2 text-sm transition-all',
+                    isDarkMode ? 'text-white hover:bg-gray-800' : 'text-gray-900 hover:bg-gray-200'
+                  )}
+                >
+                  {item.favicon && (
+                    <img src={item.favicon} alt="" className="inline w-4 h-4 mr-2" />
+                  )}
+                  {item.name}
+                </button>
+              ))}
+            </div>
           )}
-          title={fav.name}
-        >
-          {fav.name.length > 15 ? fav.name.slice(0, 15) + '…' : fav.name}
-        </button>
+        </div>
       ))}
     </div>
   );
-}
+};
+
+export default FavoritesBar;

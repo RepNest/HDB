@@ -4,6 +4,9 @@ const fs = require('fs');
 const os = require('os');
 const { spawn } = require('child_process');
 
+// Load background.js from project root
+require('./background.js');
+
 // Proxy and Auth
 app.commandLine.appendSwitch('auth-server-whitelist', '*.miamidade.gov,*.sharepoint.com');
 app.commandLine.appendSwitch('auth-negotiate-delegate-whitelist', '*.miamidade.gov,*.sharepoint.com');

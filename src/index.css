@@ -1,40 +1,43 @@
+/* Existing styles */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@keyframes shake {
-  0% { transform: rotate(0deg); }
-  10% { transform: rotate(-2deg); }
-  20% { transform: rotate(2deg); }
-  30% { transform: rotate(-2deg); }
-  40% { transform: rotate(2deg); }
-  50% { transform: rotate(-2deg); }
-  60% { transform: rotate(2deg); }
-  70% { transform: rotate(-2deg); }
-  80% { transform: rotate(2deg); }
-  90% { transform: rotate(-2deg); }
-  100% { transform: rotate(0deg); }
+@keyframes new-tab {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.animate-new-tab {
+  animation: new-tab 0.3s ease-out;
 }
 
-.shake {
-  animation: shake 1.5s infinite;
+/* Theme toggle container */
+.theme-toggle-container {
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
-/* Custom Scrollbar Styles */
+/* Custom scrollbar for Sidebar and Customize Spartan panel */
 .sidebar-scroll::-webkit-scrollbar {
   width: 8px;
 }
-
 .sidebar-scroll::-webkit-scrollbar-track {
-  background: #1a1a1a; /* Dark background for the track */
-  border-radius: 4px;
+  background: #1a1a1a;
 }
-
 .sidebar-scroll::-webkit-scrollbar-thumb {
-  background: #4a4a4a; /* Gray thumb */
+  background: #4b5563;
   border-radius: 4px;
 }
-
 .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-  background: #6b21a8; /* Purple hover effect */
+  background: #6b7280;
+}
+
+/* Light mode scrollbar */
+html:not(.dark) .sidebar-scroll::-webkit-scrollbar-track {
+  background: #e5e7eb;
+}
+html:not(.dark) .sidebar-scroll::-webkit-scrollbar-thumb {
+  background: #6b7280;
+}
+html:not(.dark) .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: #4b5563;
 }

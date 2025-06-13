@@ -5,7 +5,7 @@ import Navbar from './components/Navbar';
 import Tabs from './components/Tabs';
 import clsx from 'clsx';
 
-// Define electronAPI interface (aligned with electron.d.ts)
+// Define electronAPI interface
 interface ElectronAPI {
   launchApp: (cmd: string) => void;
   getConfig: () => Promise<{
@@ -21,6 +21,7 @@ interface ElectronAPI {
       buttonBackgroundColor: string;
       isDarkMode: boolean;
       buttonSize: 'small' | 'medium' | 'large';
+      navBackgroundColor?: string;
     };
     history: { url: string; timestamp: string }[];
     createdAt: string;
@@ -32,6 +33,9 @@ interface ElectronAPI {
   ipc: {
     on: (channel: string, callback: (...args: any[]) => void) => void;
     off: (channel: string, callback: (...args: any[]) => void) => void;
+    once: (channel: string, callback: (...args: any[]) => void) => void;
+    invoke: (channel: string, ...args: any[]) => Promise<any>;
+    send: (channel: string, ...args: any[]) => void; // Add send
   };
   onNewTab: (callback: (url: string) => void) => void;
 }
@@ -55,6 +59,7 @@ export default function App() {
   const [favorites, setFavorites] = useState<{ [key: string]: Favorite[] }>({});
   const [scale, setScale] = useState(1.0);
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [navColor, setNavColor] = useState('purple');
   const webviews: Record<number, React.RefObject<any>> = {};
 
   tabs.forEach(tab => {
@@ -63,9 +68,9 @@ export default function App() {
 
   const activeTab = tabs.find(t => t.id === activeTabId);
 
-  // Load favorites
+  // Load favorites and nav color
   useEffect(() => {
-    const loadFavorites = async () => {
+    const loadConfig = async () => {
       try {
         const config = await window.electronAPI.getConfig();
         const loadedFavorites = config?.favorites;
@@ -74,12 +79,13 @@ export default function App() {
         } else {
           setFavorites({ ' ': [] });
         }
+        setNavColor(config.itdTools.navBackgroundColor || 'purple');
       } catch (err) {
-        console.error('Failed to load favorites:', err);
+        console.error('Failed to load config:', err);
         setFavorites({ ' ': [] });
       }
     };
-    loadFavorites();
+    loadConfig();
   }, []);
 
   // Handle screen size changes
@@ -102,6 +108,34 @@ export default function App() {
     const newTab = { id: newId, title: url.startsWith('http') ? url : 'New Tab', url, isNew: true };
     setTabs(prev => [...prev, newTab]);
     setActiveTabId(newId);
+  };
+
+  const handleQueryViewer = async () => {
+    const landingUrl = 'https://informs.miamidade.gov/psc/EIH91PRD/EMPLOYEE/EMPL/c/NUI_FRAMEWORK.PT_LANDINGPAGE.GBL?&';
+    const targetUrl = 'https://ehrprd.miamidade.gov/psc/EHR92PRD_2/EMPLOYEE/HRMS/q/?ICAction=ICQryNameURL=PUBLIC.MD_HELPDESK_ID_SEARCH';
+    
+    // Clear cookies for informs.miamidade.gov
+    try {
+      await window.electronAPI.ipc.invoke('clear-cookies', 'https://informs.miamidade.gov');
+      console.log('Cookies cleared for informs.miamidade.gov');
+    } catch (err) {
+      console.error('Failed to clear cookies:', err);
+    }
+
+    // Open landing page in new tab
+    const newId = Date.now();
+    const newTab = { id: newId, title: 'INFORMS', url: landingUrl, isNew: true };
+    setTabs(prev => [...prev, newTab]);
+    setActiveTabId(newId);
+
+    // Wait for landing page to load, then navigate to Query Viewer
+    window.electronAPI.ipc.once(`landing-page-ready-${newId}`, () => {
+      setTabs(prev =>
+        prev.map(tab =>
+          tab.id === newId ? { ...tab, url: targetUrl, title: 'Query Viewer' } : tab
+        )
+      );
+    });
   };
 
   const markTabAsNotNew = (id: number) => {
@@ -205,7 +239,7 @@ export default function App() {
     const handleOpenTab = (e: CustomEvent) => {
       handleNewTab(e.detail.url);
     };
-    const handleNewTabShortcut = () => handleNewTab();
+    const handleNewTabShortcut = () => handleNewTab('https://www.google.com');
     const handleCloseTabShortcut = () => {
       if (tabs.length > 0) handleCloseTab(activeTabId);
     };
@@ -251,6 +285,8 @@ export default function App() {
             )
           );
         });
+        // Send webview-ready for Query Viewer navigation
+        window.electronAPI.ipc.send('webview-ready', activeTabId, webview.getURL());
       };
       webview.addEventListener('did-stop-loading', handleLoad);
       return () => webview.removeEventListener('did-stop-loading', handleLoad);
@@ -259,22 +295,29 @@ export default function App() {
 
   return (
     <div
-      className="h-screen w-screen flex bg-neutral-900 text-white font-sans"
+      className="h-screen w-screen flex bg-neutral-900 dark:bg-gray-100 text-white dark:text-gray-900 font-sans"
       style={{ transform: `scale(${scale})`, transformOrigin: 'top left' }}
     >
-      <Sidebar isOpen={sidebarOpen} toggle={() => setSidebarOpen(!sidebarOpen)} />
+      <Sidebar
+        isOpen={sidebarOpen}
+        toggle={() => setSidebarOpen(!sidebarOpen)}
+        navColor={navColor}
+        handleNewTab={handleNewTab}
+        handleQueryViewer={handleQueryViewer}
+      />
       <div className="flex-1 flex flex-col">
-        <div className="flex space-x-2 px-3 py-2 bg-black border-b border-gray-800 overflow-x-auto z-[1000]">
+        <div className="flex space-x-2 px-3 py-2 border-b border-gray-800 dark:border-gray-300 overflow-x-auto z-[1000]">
           <Tabs
             tabs={tabs}
             activeTabId={activeTabId}
             setActiveTabId={setActiveTabId}
             handleCloseTab={handleCloseTab}
             markTabAsNotNew={markTabAsNotNew}
+            navColor={navColor}
           />
           <button
-            onClick={() => handleNewTab()}
-            className="w-10 h-10 flex items-center justify-center bg-gray-800 hover:bg-gray-700 rounded-md text-sm font-medium transition-all"
+            onClick={() => handleNewTab('https://www.google.com')}
+            className="w-10 h-10 flex items-center justify-center bg-gray-700 dark:bg-gray-200 hover:bg-purple-600 dark:hover:bg-gray-400 rounded-md text-sm font-medium transition-all"
             title="New Tab"
           >
             ➕
@@ -293,8 +336,9 @@ export default function App() {
             onNewWindow={handleNewWindow}
             onNewPrivateWindow={handleNewPrivateWindow}
             zoom={scale}
+            navColor={navColor}
           />
-          <FavoritesBar onFavoriteClick={openFavorite} />
+          <FavoritesBar onFavoriteClick={openFavorite} navColor={navColor} />
         </div>
         <div className="flex-1 relative z-0">
           {tabs.map(tab =>

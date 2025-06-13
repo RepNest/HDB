@@ -147,5 +147,38 @@
   ],
 
   "createdAt": "2025-01-01T00:00:00.000Z",
-  "history": []
+  "history": [],
+  "passwords": [
+    { "site": "https://example.com", "username": "user", "encryptedPassword": "abc123" }
+  ],
+  "autofill": [
+    { "type": "email", "value": "user@example.com" }
+  ],
+  "cache": [
+    { "url": "https://cached-image.com/image.jpg", "timestamp": "..." }
+  ],
+  "privacy": {
+    "preferences": {
+      "sendDoNotTrack": false,
+      "allowCookies": true,
+      "blockThirdPartyCookies": false,
+      "enableSafeBrowsing": true
+    }
+  },
+  "security": {
+    "preferences": {
+      "firewallEnabled": true,
+      "smartscreenFilter": true,
+      "allowInsecureContent": false,
+      "siteIsolation": true
+    }
+  },
+  "connectedExperiences": {
+    "preferences": {
+      "searchSuggestions": true,
+      "personalizeAds": false,
+      "useLocation": true,
+      "shareUsageData": false
+    }
+  }
 }

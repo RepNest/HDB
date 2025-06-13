@@ -1,58 +1,65 @@
-import React, { useEffect, useState } from 'react';
+// src/components/Settings/SubComponents/Privacy/ClearOnClosePage.tsx
 
-const options = [
-  { key: 'history', label: 'Browsing history' },
-  { key: 'downloads', label: 'Download history' },
-  { key: 'cookies', label: 'Cookies and other site data' },
-  { key: 'cache', label: 'Cached images and files' },
-  { key: 'passwords', label: 'Passwords' },
-  { key: 'autofill', label: 'Autofill form data' },
-];
+import React, { useEffect, useState } from 'react';
+import BackButton from './BackButton';
+
+type ClearDataOptions = {
+  history: boolean;
+  cookies: boolean;
+  cache: boolean;
+  passwords: boolean;
+  autofill: boolean;
+  sitePermissions: boolean;
+};
 
 const ClearOnClosePage = () => {
-  const [clearOnClose, setClearOnClose] = useState<Record<string, boolean>>({});
+  const [clearOptions, setClearOptions] = useState<ClearDataOptions>({
+    history: false,
+    cookies: false,
+    cache: false,
+    passwords: false,
+    autofill: false,
+    sitePermissions: false,
+  });
 
   useEffect(() => {
-    const fetchSettings = async () => {
+    const fetchConfig = async () => {
       const config = await window.electronAPI.getConfig?.();
       if (config?.clearOnClose) {
-        setClearOnClose(config.clearOnClose);
-      } else {
-        // Initialize defaults if not present
-        const defaultState = Object.fromEntries(options.map(o => [o.key, false]));
-        setClearOnClose(defaultState);
+        setClearOptions(config.clearOnClose);
       }
     };
-    fetchSettings();
+    fetchConfig();
   }, []);
 
-  const toggleOption = async (key: string) => {
-    const updated = { ...clearOnClose, [key]: !clearOnClose[key] };
-    setClearOnClose(updated);
+  const toggleOption = async (key: keyof ClearDataOptions) => {
+    const updated = { ...clearOptions, [key]: !clearOptions[key] };
+    setClearOptions(updated);
+
     const config = await window.electronAPI.getConfig?.();
-    await window.electronAPI.saveConfig?.({
-      ...config,
-      clearOnClose: updated,
-    });
+    const newConfig = { ...config, clearOnClose: updated };
+    await window.electronAPI.saveConfig?.(newConfig);
   };
 
   return (
-    <div className="space-y-6 text-white">
-      <h2 className="text-2xl font-bold mb-4">Clear on Close</h2>
-      <p className="text-gray-400 mb-4">
-        Choose what to clear automatically every time you close the browser.
+    <div className="p-6 text-white space-y-6">
+      <BackButton />
+      <h2 className="text-2xl font-bold">Clear Browsing Data on Close</h2>
+      <p className="text-sm text-gray-400 mb-4">
+        Select what you want to automatically clear every time you close the browser.
       </p>
+
       <div className="space-y-3">
-        {options.map(option => (
-          <div key={option.key} className="flex items-center gap-3">
+        {Object.entries(clearOptions).map(([key, value]) => (
+          <label key={key} className="flex items-center gap-3">
             <input
               type="checkbox"
-              checked={!!clearOnClose[option.key]}
-              onChange={() => toggleOption(option.key)}
-              className="w-5 h-5"
+              checked={value}
+              onChange={() => toggleOption(key as keyof ClearDataOptions)}
+              className="w-4 h-4"
             />
-            <label>{option.label}</label>
-          </div>
+            <span className="capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
+          </label>
         ))}
       </div>
     </div>

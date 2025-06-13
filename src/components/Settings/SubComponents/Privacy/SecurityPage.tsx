@@ -1,78 +1,61 @@
-import React, { useEffect, useState } from 'react';
+// src/components/Settings/SubComponents/Privacy/SecurityPage.tsx
 
-type SecuritySettingsState = {
-  safeBrowsingEnabled: boolean;
-  autoUpgradeHttps: boolean;
-  showCertificateWarnings: boolean;
-};
+import React, { useEffect, useState } from 'react';
+import BackButton from './BackButton';
 
 const SecurityPage = () => {
-  const [settings, setSettings] = useState<SecuritySettingsState>({
-    safeBrowsingEnabled: true,
-    autoUpgradeHttps: true,
-    showCertificateWarnings: true
+  const [security, setSecurity] = useState({
+    firewallEnabled: true,
+    smartscreenFilter: true,
+    allowInsecureContent: false,
+    siteIsolation: true,
   });
 
   useEffect(() => {
-    const load = async () => {
+    const fetchConfig = async () => {
       const config = await window.electronAPI.getConfig?.();
-      if (config?.securitySettings) {
-        setSettings(config.securitySettings);
+      if (config?.security?.preferences) {
+        setSecurity(config.security.preferences);
       }
     };
-    load();
+    fetchConfig();
   }, []);
 
-  const handleToggle = async (key: keyof SecuritySettingsState) => {
-    const updated = { ...settings, [key]: !settings[key] };
-    setSettings(updated);
+  const handleToggle = async (key: keyof typeof security) => {
+    const updated = { ...security, [key]: !security[key] };
+    setSecurity(updated);
+
     const config = await window.electronAPI.getConfig?.();
-    await window.electronAPI.saveConfig?.({
+    const newConfig = {
       ...config,
-      securitySettings: updated
-    });
+      security: {
+        ...config.security,
+        preferences: updated,
+      },
+    };
+
+    await window.electronAPI.saveConfig?.(newConfig);
   };
 
   return (
-    <div className="space-y-6 text-white">
-      <h2 className="text-2xl font-bold mb-4">Security Settings</h2>
+    <div className="p-6 text-white space-y-6">
+      <BackButton />
+      <h2 className="text-2xl font-bold">Security Settings</h2>
+      <p className="text-gray-400">Manage how your browser protects your system and data.</p>
 
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <label htmlFor="safeBrowsing" className="text-sm">
-            Enable Safe Browsing
+      <div className="space-y-4 mt-4">
+        {Object.entries(security).map(([key, val]) => (
+          <label key={key} className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={val}
+              onChange={() => handleToggle(key as keyof typeof security)}
+            />
+            <span className="capitalize">
+              {key.replace(/([A-Z])/g, ' $1')}
+            </span>
           </label>
-          <input
-            id="safeBrowsing"
-            type="checkbox"
-            checked={settings.safeBrowsingEnabled}
-            onChange={() => handleToggle('safeBrowsingEnabled')}
-          />
-        </div>
-
-        <div className="flex items-center justify-between">
-          <label htmlFor="autoUpgradeHttps" className="text-sm">
-            Always upgrade to HTTPS
-          </label>
-          <input
-            id="autoUpgradeHttps"
-            type="checkbox"
-            checked={settings.autoUpgradeHttps}
-            onChange={() => handleToggle('autoUpgradeHttps')}
-          />
-        </div>
-
-        <div className="flex items-center justify-between">
-          <label htmlFor="showCertificateWarnings" className="text-sm">
-            Show certificate warnings
-          </label>
-          <input
-            id="showCertificateWarnings"
-            type="checkbox"
-            checked={settings.showCertificateWarnings}
-            onChange={() => handleToggle('showCertificateWarnings')}
-          />
-        </div>
+        ))}
       </div>
     </div>
   );

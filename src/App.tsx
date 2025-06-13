@@ -12,7 +12,7 @@ import TypoProtectionPage from './components/Settings/SubComponents/Privacy/Typo
 import TrackingPreventionPage from './components/Settings/SubComponents/Privacy/TrackingPreventionPage';
 import PrivacyPage from './components/Settings/SubComponents/Privacy/PrivacyPage';
 import SecurityPage from './components/Settings/SubComponents/Privacy/SecurityPage';
-// import ConnectedExperiencesPage from './components/Settings/SubComponents/Privacy/ConnectedExperiencesPage';
+import ConnectedExperiencesPage from './components/Settings/SubComponents/Privacy/ConnectedExperiencesPage';
 
 type Tab = {
   id: number;
@@ -70,7 +70,7 @@ export default function App() {
   useEffect(() => {
   window.electronAPI.getConfig?.().then(config => {
     const history = Array.isArray(config?.history)
-  ? config.history.filter(h =>
+  ? config.history.filter((h: { url: any; timestamp: any; }) =>
       typeof h === 'object' &&
       typeof h.url === 'string' &&
       typeof h.timestamp === 'string'

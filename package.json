@@ -5,9 +5,9 @@
   "build": {
     "publish": [
       {
-      "provider": "github",
-      "owner": "RepNest",
-      "repo": "HDB"
+        "provider": "github",
+        "owner": "RepNest",
+        "repo": "HDB"
       }
     ],
     "appId": "com.helpdeskbrowser.app",
@@ -42,6 +42,7 @@
   "dependencies": {
     "clsx": "^2.1.1",
     "electron-updater": "^6.6.2",
+    "lucide-react": "^0.515.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

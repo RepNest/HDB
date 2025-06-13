@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import BackButton from './BackButton';
 
 const TrackingPreventionPage = () => {
   const [level, setLevel] = useState<'Basic' | 'Balanced' | 'Strict'>('Balanced');
@@ -25,6 +26,7 @@ const TrackingPreventionPage = () => {
 
   return (
     <div className="space-y-6 text-white">
+      <BackButton />
       <h2 className="text-2xl font-bold mb-4">Tracking Prevention</h2>
 
       <p className="text-gray-400">

@@ -1,79 +1,66 @@
+// src/components/Settings/SubComponents/Privacy/TrackingPreventionPage.tsx
+
 import React, { useEffect, useState } from 'react';
 import BackButton from './BackButton';
 
 const TrackingPreventionPage = () => {
-  const [level, setLevel] = useState<'Basic' | 'Balanced' | 'Strict'>('Balanced');
-  const [showBlockList, setShowBlockList] = useState(false);
+  const [level, setLevel] = useState<'basic' | 'balanced' | 'strict'>('balanced');
 
   useEffect(() => {
-    const load = async () => {
+    const fetchConfig = async () => {
       const config = await window.electronAPI.getConfig?.();
-      if (config?.trackingPreventionLevel) {
-        setLevel(config.trackingPreventionLevel);
+      if (config?.privacy?.trackingPrevention) {
+        setLevel(config.privacy.trackingPrevention);
       }
     };
-    load();
+    fetchConfig();
   }, []);
 
-  const handleLevelChange = async (newLevel: 'Basic' | 'Balanced' | 'Strict') => {
+  const handleChange = async (newLevel: 'basic' | 'balanced' | 'strict') => {
     setLevel(newLevel);
     const config = await window.electronAPI.getConfig?.();
-    await window.electronAPI.saveConfig?.({
+    const newConfig = {
       ...config,
-      trackingPreventionLevel: newLevel
-    });
+      privacy: {
+        ...config.privacy,
+        trackingPrevention: newLevel,
+      },
+    };
+    await window.electronAPI.saveConfig?.(newConfig);
   };
 
   return (
-    <div className="space-y-6 text-white">
+    <div className="p-6 text-white space-y-6">
       <BackButton />
-      <h2 className="text-2xl font-bold mb-4">Tracking Prevention</h2>
-
+      <h2 className="text-2xl font-bold">Tracking Prevention</h2>
       <p className="text-gray-400">
-        Choose how strictly the browser blocks known trackers. “Balanced” is recommended.
+        Choose how you want to prevent websites from tracking your browsing activity.
       </p>
 
-      <div className="space-y-3">
-        {(['Basic', 'Balanced', 'Strict'] as const).map(option => (
-          <label key={option} className="block cursor-pointer">
+      <div className="space-y-4 mt-4">
+        {(['basic', 'balanced', 'strict'] as const).map(option => (
+          <label
+            key={option}
+            className={`block p-4 border rounded cursor-pointer ${
+              level === option ? 'border-purple-500 bg-neutral-800' : 'border-neutral-700'
+            }`}
+          >
             <input
               type="radio"
               name="trackingLevel"
               value={option}
               checked={level === option}
-              onChange={() => handleLevelChange(option)}
+              onChange={() => handleChange(option)}
               className="mr-2"
             />
-            <span className="font-semibold">{option}</span>
-            {option === 'Basic' && <p className="text-sm text-gray-500 ml-6">Allows most trackers, minimal blocking.</p>}
-            {option === 'Balanced' && <p className="text-sm text-gray-500 ml-6">Blocks known harmful trackers (recommended).</p>}
-            {option === 'Strict' && <p className="text-sm text-gray-500 ml-6">Blocks most trackers aggressively.</p>}
+            <strong className="capitalize">{option}</strong>
+            <div className="text-sm text-gray-400">
+              {option === 'basic' && 'Allows most trackers. Least protection, best compatibility.'}
+              {option === 'balanced' && 'Blocks some trackers. Recommended default.'}
+              {option === 'strict' && 'Blocks most trackers. May break some websites.'}
+            </div>
           </label>
         ))}
-      </div>
-
-      <div>
-        <button
-          onClick={() => setShowBlockList(!showBlockList)}
-          className="mt-4 text-blue-400 hover:underline"
-        >
-          {showBlockList ? 'Hide' : 'View'} blocked tracker list
-        </button>
-
-        {showBlockList && (
-          <div className="mt-4 p-3 bg-neutral-800 border border-gray-600 rounded max-h-60 overflow-y-auto text-sm text-gray-300">
-            <ul className="list-disc pl-5 space-y-1">
-              <li>adtracker.example.com</li>
-              <li>analytics.doubleclick.net</li>
-              <li>socialwidgets.tracker.io</li>
-              <li>ads.retargeting.biz</li>
-              <li>pixel.facebook.com</li>
-              <li>tracker123.adnetwork.net</li>
-              <li>example-tracker.org</li>
-              <li>cdn.trackerspace.com</li>
-            </ul>
-          </div>
-        )}
       </div>
     </div>
   );

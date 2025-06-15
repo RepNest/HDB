@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import clsx from 'clsx';
 import { Config, AppConfig, ITDButton, Favorites } from '../types';
 import SidebarButtons from './SidebarButtons.tsx';
@@ -73,7 +73,7 @@ interface SidebarProps {
   handleQueryViewer: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggle, navColor, handleNewTab, handleQueryViewer }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen: propIsOpen, toggle, navColor, handleNewTab, handleQueryViewer }) => {
   const [apps, setApps] = useState<AppConfig[]>([]);
   const [visibleAppsIndices, setVisibleAppsIndices] = useState<string[]>([]);
   const [favorites, setFavorites] = useState<Favorites>({});
@@ -82,6 +82,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggle, navColor, handleNewTa
   const [isEditMode, setIsEditMode] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
   const [buttonSize, setButtonSize] = useState<'small' | 'medium' | 'large'>('medium');
+  const [isOpen, setIsOpen] = useState(propIsOpen);
+  const minimizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const loadConfig = async () => {
@@ -111,6 +113,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggle, navColor, handleNewTa
         setIsEditMode(config.itdTools.isEditMode || false);
         setIsDarkMode(config.itdTools.isDarkMode !== false);
         setButtonSize(config.itdTools.buttonSize || 'medium');
+        setIsOpen(!config.sidebarCollapsed);
       } catch (err) {
         console.error('Failed to load config:', err);
         setApps(defaultConfig.apps);
@@ -129,11 +132,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggle, navColor, handleNewTa
     newButtonOrder: string[],
     newVisibleITDButtons: string[],
     newEditMode: boolean,
-    newButtonSize: 'small' | 'medium' | 'large'
+    newButtonSize: 'small' | 'medium' | 'large',
+    newSidebarCollapsed: boolean
   ) => {
     const currentConfig = await window.electronAPI.getConfig();
     const updatedConfig: Config = {
       ...currentConfig,
+      sidebarCollapsed: newSidebarCollapsed,
       itdTools: {
         ...currentConfig.itdTools,
         appsOrder: newAppsOrder,
@@ -147,7 +152,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggle, navColor, handleNewTa
       },
     };
     await window.electronAPI.saveConfig(updatedConfig);
-    console.log('Config saved with navColor:', navColor);
+    console.log('Config saved with navColor:', navColor, 'sidebarCollapsed:', newSidebarCollapsed);
   };
 
   const launchApp = (cmd: string) => {
@@ -159,17 +164,65 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggle, navColor, handleNewTa
     }
   };
 
+  const handleMouseEnter = () => {
+    if (minimizeTimeoutRef.current) {
+      clearTimeout(minimizeTimeoutRef.current);
+      minimizeTimeoutRef.current = null;
+    }
+    setIsOpen(true);
+    saveConfig(
+      visibleAppsIndices,
+      visibleAppsIndices,
+      itdToolsButtons.map(b => b.id),
+      visibleITDButtons,
+      isEditMode,
+      buttonSize,
+      false
+    );
+  };
+
+  const handleMouseLeave = () => {
+    minimizeTimeoutRef.current = setTimeout(() => {
+      setIsOpen(false);
+      saveConfig(
+        visibleAppsIndices,
+        visibleAppsIndices,
+        itdToolsButtons.map(b => b.id),
+        visibleITDButtons,
+        isEditMode,
+        buttonSize,
+        true
+      );
+    }, 300); // 300ms delay to prevent jitter
+  };
+
+  const handleToggle = () => {
+    toggle(); // Call parent toggle for compatibility with App.tsx
+    setIsOpen(!isOpen);
+    saveConfig(
+      visibleAppsIndices,
+      visibleAppsIndices,
+      itdToolsButtons.map(b => b.id),
+      visibleITDButtons,
+      isEditMode,
+      buttonSize,
+      isOpen
+    );
+  };
+
   return (
     <div
       className={clsx(
-        'h-full flex flex-col sidebar-scroll',
+        'h-full flex flex-col sidebar-scroll sidebar-container',
         `bg-${navColor}-600 dark:bg-${navColor}-300`,
         isOpen ? 'w-64' : 'w-16'
       )}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       <div className="py-4 px-2">
         <button
-          onClick={toggle}
+          onClick={handleToggle}
           className={clsx(
             'mb-4 text-white hover:text-purple-600 self-center',
             isDarkMode ? 'text-white' : 'text-gray-900'
@@ -192,7 +245,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggle, navColor, handleNewTa
           navColor={navColor}
           handleNewTab={handleNewTab}
           handleQueryViewer={handleQueryViewer}
-          saveConfig={saveConfig}
+          saveConfig={(newAppsOrder, newVisibleApps, newButtonOrder, newVisibleITDButtons, newEditMode, newButtonSize) =>
+            saveConfig(newAppsOrder, newVisibleApps, newButtonOrder, newVisibleITDButtons, newEditMode, newButtonSize, !isOpen)
+          }
           launchApp={launchApp}
           setVisibleAppsIndices={setVisibleAppsIndices}
           setITDToolsButtons={setITDToolsButtons}

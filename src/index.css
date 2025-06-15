@@ -41,3 +41,8 @@ html:not(.dark) .sidebar-scroll::-webkit-scrollbar-thumb {
 html:not(.dark) .sidebar-scroll::-webkit-scrollbar-thumb:hover {
   background: #4b5563;
 }
+
+/* Sidebar transition for hover effect */
+.sidebar-container {
+  transition: width 0.3s ease-in-out;
+}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import clsx from 'clsx';
+import { Config, AppConfig, ITDButton, Favorites } from '../types';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -7,36 +8,6 @@ interface SidebarProps {
   navColor: string;
   handleNewTab: (url: string) => void;
   handleQueryViewer: () => void;
-}
-
-interface AppButton {
-  iconPath?: string;
-  name: string;
-  command: string;
-  icon?: string;
-}
-
-interface ITDButton {
-  id: string;
-  text: string;
-  url?: string;
-  submenu?: { id: string; text: string; url: string }[];
-}
-
-interface Config {
-  apps: AppButton[];
-  favorites: { [folder: string]: { name: string; url: string; favicon?: string }[] };
-  itdTools: {
-    appsOrder: string[];
-    visibleApps: string[];
-    buttonOrder: string[];
-    visibleITDButtons: string[];
-    isEditMode: boolean;
-    navBackgroundColor?: string;
-    isDarkMode: boolean;
-    buttonSize: 'small' | 'medium' | 'large';
-  };
-  createdAt: string; // Add createdAt
 }
 
 const itdButtons: ITDButton[] = [
@@ -96,13 +67,15 @@ const defaultConfig: Config = {
     isDarkMode: true,
     buttonSize: 'medium',
   },
+  sidebarCollapsed: false,
+  history: [],
   createdAt: '2025-01-01T00:00:00.000Z',
 };
 
-export default function Sidebar({ isOpen, toggle, navColor, handleNewTab, handleQueryViewer }: SidebarProps) {
-  const [apps, setApps] = useState<AppButton[]>([]);
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggle, navColor, handleNewTab, handleQueryViewer }) => {
+  const [apps, setApps] = useState<AppConfig[]>([]);
   const [visibleAppsIndices, setVisibleAppsIndices] = useState<string[]>([]);
-  const [favorites, setFavorites] = useState<{ [folder: string]: { name: string; url: string; favicon?: string }[] }>({});
+  const [favorites, setFavorites] = useState<Favorites>({});
   const [itdToolsButtons, setITDToolsButtons] = useState<ITDButton[]>(itdButtons);
   const [visibleITDButtons, setVisibleITDButtons] = useState<string[]>(itdButtons.map(b => b.id));
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -113,18 +86,17 @@ export default function Sidebar({ isOpen, toggle, navColor, handleNewTab, handle
   const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
   const [buttonSize, setButtonSize] = useState<'small' | 'medium' | 'large'>('medium');
 
-  // Load config with robust fallback
   useEffect(() => {
     const loadConfig = async () => {
       try {
-        const config: Config = await window.electronAPI?.getConfig?.();
+        const config: Config = await window.electronAPI.getConfig();
         console.log('Sidebar config loaded:', config);
-        if (config?.apps?.length) {
-          const appsOrder = config.itdTools?.appsOrder || config.apps.map((_, i) => i.toString());
-          const visibleApps = config.itdTools?.visibleApps || config.apps.map((_, i) => i.toString());
+        if (config.apps.length) {
+          const appsOrder = config.itdTools.appsOrder || config.apps.map((_, i) => i.toString());
+          const visibleApps = config.itdTools.visibleApps || config.apps.map((_, i) => i.toString());
           const orderedApps = appsOrder
-            .map(id => config.apps[parseInt(id)])
-            .filter((app): app is AppButton => !!app && visibleApps.includes(id));
+            .map(appIndex => config.apps[parseInt(appIndex)])
+            .filter((app): app is AppConfig => !!app && visibleApps.includes(appIndex));
           setApps(config.apps);
           setVisibleAppsIndices(visibleApps);
           console.log('Apps set:', config.apps, 'Visible indices:', visibleApps);
@@ -133,18 +105,18 @@ export default function Sidebar({ isOpen, toggle, navColor, handleNewTab, handle
           setApps(defaultConfig.apps);
           setVisibleAppsIndices(defaultConfig.itdTools.visibleApps);
         }
-        setFavorites(config?.favorites || {});
-        if (config?.itdTools?.buttonOrder) {
-          const visibleButtons = config.itdTools?.visibleITDButtons || itdButtons.map(b => b.id);
+        setFavorites(config.favorites || {});
+        if (config.itdTools.buttonOrder) {
+          const visibleButtons = config.itdTools.visibleITDButtons || itdButtons.map(b => b.id);
           const orderedButtons = config.itdTools.buttonOrder
-            .map(id => itdButtons.find(b => b.id === id))
+            .map(buttonId => itdButtons.find(b => b.id === buttonId))
             .filter((b): b is ITDButton => !!b && visibleButtons.includes(b.id));
           setITDToolsButtons(orderedButtons.length > 0 ? orderedButtons : itdButtons.filter(b => visibleButtons.includes(b.id)));
           setVisibleITDButtons(visibleButtons);
         }
-        setIsEditMode(config?.itdTools?.isEditMode || false);
-        setIsDarkMode(config?.itdTools?.isDarkMode !== false);
-        setButtonSize(config?.itdTools?.buttonSize || 'medium');
+        setIsEditMode(config.itdTools.isEditMode || false);
+        setIsDarkMode(config.itdTools.isDarkMode !== false);
+        setButtonSize(config.itdTools.buttonSize || 'medium');
       } catch (err) {
         console.error('Failed to load config:', err);
         setApps(defaultConfig.apps);
@@ -157,7 +129,6 @@ export default function Sidebar({ isOpen, toggle, navColor, handleNewTab, handle
     loadConfig();
   }, []);
 
-  // Save config
   const saveConfig = async (
     newAppsOrder: string[],
     newVisibleApps: string[],
@@ -166,10 +137,11 @@ export default function Sidebar({ isOpen, toggle, navColor, handleNewTab, handle
     newEditMode: boolean,
     newButtonSize: 'small' | 'medium' | 'large'
   ) => {
-    const currentConfig = await window.electronAPI?.getConfig?.();
-    const updatedConfig = {
+    const currentConfig = await window.electronAPI.getConfig();
+    const updatedConfig: Config = {
       ...currentConfig,
       itdTools: {
+        ...currentConfig.itdTools,
         appsOrder: newAppsOrder,
         visibleApps: newVisibleApps,
         buttonOrder: newButtonOrder,
@@ -180,10 +152,8 @@ export default function Sidebar({ isOpen, toggle, navColor, handleNewTab, handle
         buttonSize: newButtonSize,
       },
     };
-    if (window.electronAPI?.saveConfig) {
-      await window.electronAPI.saveConfig(updatedConfig);
-      console.log('Config saved with navColor:', navColor);
-    }
+    await window.electronAPI.saveConfig(updatedConfig);
+    console.log('Config saved with navColor:', navColor);
   };
 
   const launchApp = (cmd: string) => {
@@ -191,7 +161,7 @@ export default function Sidebar({ isOpen, toggle, navColor, handleNewTab, handle
     if (isURL) {
       handleNewTab(cmd);
     } else {
-      window.electronAPI?.launchApp(cmd);
+      window.electronAPI.launchApp(cmd);
     }
   };
 
@@ -199,7 +169,6 @@ export default function Sidebar({ isOpen, toggle, navColor, handleNewTab, handle
     handleNewTab(url);
   };
 
-  // Handle ITD Tools button click
   const handleITDButtonClick = (button: ITDButton) => {
     if (isEditMode) return;
     if (button.id === 'goToQueryViewer') {
@@ -212,7 +181,6 @@ export default function Sidebar({ isOpen, toggle, navColor, handleNewTab, handle
     }
   };
 
-  // Handle submenu item click
   const handleSubmenuClick = (subItem: { id: string; text: string; url: string }) => {
     if (isEditMode) return;
     if (subItem.id === 'goToActiveDirectorySearch') {
@@ -224,7 +192,6 @@ export default function Sidebar({ isOpen, toggle, navColor, handleNewTab, handle
     }
   };
 
-  // Handle Active Directory Search input
   const handleInputSubmit = () => {
     if (!userId.trim()) {
       return;
@@ -235,7 +202,6 @@ export default function Sidebar({ isOpen, toggle, navColor, handleNewTab, handle
     setUserId('');
   };
 
-  // Handle hide button
   const handleHideApp = (index: string) => {
     const newVisibleApps = visibleAppsIndices.filter(i => i !== index);
     setVisibleAppsIndices(newVisibleApps);
@@ -263,7 +229,6 @@ export default function Sidebar({ isOpen, toggle, navColor, handleNewTab, handle
     );
   };
 
-  // Handle unhide button
   const handleUnhideApp = (index: string) => {
     const newVisibleApps = [...visibleAppsIndices, index];
     setVisibleAppsIndices(newVisibleApps);
@@ -294,7 +259,6 @@ export default function Sidebar({ isOpen, toggle, navColor, handleNewTab, handle
     }
   };
 
-  // Drag-and-drop handlers
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, section: 'apps' | 'itdTools', index: number) => {
     if (!isEditMode) return;
     setDraggedIndex({ section, index });
@@ -635,4 +599,6 @@ export default function Sidebar({ isOpen, toggle, navColor, handleNewTab, handle
       </div>
     </div>
   );
-}
+};
+
+export default Sidebar;

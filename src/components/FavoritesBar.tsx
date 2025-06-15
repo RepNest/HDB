@@ -1,18 +1,13 @@
 import React, { useState } from 'react';
 import clsx from 'clsx';
 import { ChevronDownIcon } from '@heroicons/react/24/solid';
-
-interface Favorite {
-  name: string;
-  url: string;
-  favicon?: string;
-}
+import { Favorites } from '../types';
 
 interface FavoritesBarProps {
-  favorites: { [folder: string]: Favorite[] };
+  favorites: Favorites;
   onNavigate: (url: string) => void;
   navColor: string;
-  isDarkMode: boolean; // Added to control theme
+  isDarkMode: boolean;
 }
 
 const FavoritesBar: React.FC<FavoritesBarProps> = ({ favorites, onNavigate, navColor, isDarkMode }) => {

@@ -3,39 +3,9 @@ import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import Tabs from './components/Tabs';
 import FavoritesBar from './components/FavoritesBar';
-import WebviewComponent from './components/WebviewComponent'; // Import new component
+import WebviewComponent from './components/WebviewComponent';
 import clsx from 'clsx';
-
-// Define Electron-specific webview type
-interface ElectronWebview extends HTMLWebViewElement {
-  loadURL: (url: string) => void;
-  goBack: () => void;
-  goForward: () => void;
-  reload: () => void;
-}
-
-interface Tab {
-  id: number;
-  title: string;
-  url: string;
-  isNew?: boolean;
-}
-
-interface Config {
-  apps: { name: string; command: string; iconPath?: string }[];
-  favorites: { [folder: string]: { name: string; url: string; favicon?: string }[] };
-  itdTools: {
-    appsOrder: string[];
-    visibleApps: string[];
-    buttonOrder: string[];
-    visibleITDButtons: string[];
-    isEditMode: boolean;
-    navBackgroundColor?: string;
-    isDarkMode: boolean;
-    buttonSize: 'small' | 'medium' | 'large';
-  };
-  createdAt: string;
-}
+import { Config, Tab, ElectronWebview } from './types';
 
 const App: React.FC = () => {
   const [tabs, setTabs] = useState<Tab[]>([{ id: Date.now(), title: 'New Tab', url: 'https://www.google.com' }]);
@@ -168,7 +138,7 @@ const App: React.FC = () => {
         navColor={navColor}
         isDarkMode={isDarkMode}
       />
-      <div className="flex flex-1 overflow-auto">
+      <div className="flex flex-1 overflow-auto" style={{ minHeight: 0 }}>
         <Sidebar
           isOpen={sidebarOpen}
           toggle={() => setSidebarOpen(!sidebarOpen)}

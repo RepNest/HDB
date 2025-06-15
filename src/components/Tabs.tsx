@@ -1,13 +1,7 @@
 import React from 'react';
 import clsx from 'clsx';
 import { XMarkIcon } from '@heroicons/react/24/solid';
-
-interface Tab {
-  id: number;
-  title: string;
-  url: string;
-  isNew?: boolean;
-}
+import { Tab } from '../types';
 
 interface TabsProps {
   tabs: Tab[];
@@ -16,7 +10,7 @@ interface TabsProps {
   onCloseTab: (id: number) => void;
   onNewTab: () => void;
   navColor: string;
-  isDarkMode: boolean; // Added to control theme
+  isDarkMode: boolean;
 }
 
 const Tabs: React.FC<TabsProps> = ({ tabs, activeTabId, onTabClick, onCloseTab, onNewTab, navColor, isDarkMode }) => {

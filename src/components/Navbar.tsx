@@ -2,17 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeftIcon, ChevronRightIcon, ArrowPathIcon, MinusIcon, PlusIcon, Bars3Icon } from '@heroicons/react/24/solid';
-
-// Define Electron-specific webview type
-interface ElectronWebview extends HTMLWebViewElement {
-  loadURL: (url: string) => void;
-  goBack: () => void;
-  goForward: () => void;
-  reload: () => void;
-}
+import { Config, ElectronWebview } from '../types';
 
 interface NavbarProps {
-  webviewRef: ElectronWebview | null; // Use custom type
+  webviewRef: ElectronWebview | null;
   url: string;
   onNavigate: (url: string) => void;
   onZoomIn: () => void;
@@ -50,7 +43,6 @@ const Navbar: React.FC<NavbarProps> = ({
   const menuRef = useRef<HTMLDivElement>(null);
   const customizeRef = useRef<HTMLDivElement>(null);
 
-  // Create a root div for the customize panel
   useEffect(() => {
     let root = document.getElementById('customize-spartan-root');
     if (!root) {
@@ -65,11 +57,10 @@ const Navbar: React.FC<NavbarProps> = ({
     };
   }, [customizeOpen]);
 
-  // Load dark mode and nav color
   useEffect(() => {
     const loadConfig = async () => {
       try {
-        const config = await window.electronAPI.getConfig();
+        const config: Config = await window.electronAPI.getConfig();
         const darkMode = config.itdTools.isDarkMode ?? true;
         setIsDarkMode(darkMode);
         setLocalNavColor(config.itdTools.navBackgroundColor || navColor);
@@ -82,7 +73,6 @@ const Navbar: React.FC<NavbarProps> = ({
     loadConfig();
   }, [navColor]);
 
-  // Close menu and customize panel on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
@@ -111,6 +101,7 @@ const Navbar: React.FC<NavbarProps> = ({
     let newUrl = addressInput.current.value;
     if (!newUrl.startsWith('http')) newUrl = 'https://' + newUrl;
     onNavigate(newUrl);
+    if (webviewRef) webviewRef.loadURL(newUrl);
   };
 
   const handleEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -120,7 +111,7 @@ const Navbar: React.FC<NavbarProps> = ({
   const handleToggleTheme = async (dark: boolean) => {
     try {
       const config = await window.electronAPI.getConfig();
-      const newConfig = {
+      const newConfig: Config = {
         ...config,
         itdTools: { ...config.itdTools, isDarkMode: dark },
       };
@@ -140,7 +131,7 @@ const Navbar: React.FC<NavbarProps> = ({
   const handleChangeNavColor = async (color: string) => {
     try {
       const config = await window.electronAPI.getConfig();
-      const newConfig = {
+      const newConfig: Config = {
         ...config,
         itdTools: { ...config.itdTools, navBackgroundColor: color },
       };
@@ -152,7 +143,6 @@ const Navbar: React.FC<NavbarProps> = ({
     }
   };
 
-  // Render the customize panel in the root div
   const renderCustomizePanel = () => {
     const root = document.getElementById('customize-spartan-root');
     if (!root) {
@@ -183,7 +173,7 @@ const Navbar: React.FC<NavbarProps> = ({
         <div className="flex flex-col items-center space-y-6">
           <div className="theme-toggle-container flex rounded-full bg-gray-700/50 dark:bg-gray-200/50 backdrop-blur-sm shadow-inner p-2 w-96">
             <button
-              onClick={() => handleToggleTheme(true)} // Dark mode, left (light icon)
+              onClick={() => handleToggleTheme(true)}
               className={clsx(
                 'flex items-center justify-center w-1/2 py-3 rounded-full transition-all text-lg',
                 isDarkMode ? `bg-${navColor}-600 text-white` : 'bg-transparent text-gray-300 dark:text-gray-600 hover:bg-gray-300 dark:hover:bg-gray-400'
@@ -192,7 +182,7 @@ const Navbar: React.FC<NavbarProps> = ({
               <span className="text-2xl mr-2">☀️</span> Light
             </button>
             <button
-              onClick={() => handleToggleTheme(false)} // Light mode, right (dark icon)
+              onClick={() => handleToggleTheme(false)}
               className={clsx(
                 'flex items-center justify-center w-1/2 py-3 rounded-full transition-all text-lg',
                 !isDarkMode ? `bg-${navColor}-600 text-white` : 'bg-transparent text-gray-300 dark:text-gray-600 hover:bg-gray-300 dark:hover:bg-gray-400'

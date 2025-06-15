@@ -1,146 +1,120 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
-import { motion } from 'framer-motion';
-import { Config } from '../types';
+import ThemeToggle from './ThemeToggle.tsx';
+import { Config, ITDTools } from '../types';
 
 interface CustomizeSpartanPanelProps {
   isOpen: boolean;
-  isDarkMode: boolean;
+  toggle: () => void;
   navColor: string;
-  localNavColor: string;
-  handleToggleTheme: (dark: boolean) => void;
-  handleChangeNavColor: (color: string) => void;
-  customizeRef: React.RefObject<HTMLDivElement>;
-  customizeButtonRef: React.RefObject<HTMLButtonElement>;
+  setNavColor: (color: string) => void;
+  saveConfig: (config: Config) => Promise<void>;
 }
 
 const CustomizeSpartanPanel: React.FC<CustomizeSpartanPanelProps> = ({
   isOpen,
-  isDarkMode,
+  toggle,
   navColor,
-  localNavColor,
-  handleToggleTheme,
-  handleChangeNavColor,
-  customizeRef,
-  customizeButtonRef,
+  setNavColor,
+  saveConfig,
 }) => {
-  if (!isOpen) return null;
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
 
-  const renderCustomizePanel = () => {
-    const root = document.getElementById('customize-spartan-root');
-    if (!root) {
-      console.error('Customize Spartan root div not found');
-      return null;
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const initialTheme = savedTheme ? (savedTheme as 'light' | 'dark') : prefersDark ? 'dark' : 'light';
+    setTheme(initialTheme);
+    setIsDarkMode(initialTheme === 'dark');
+    if (initialTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
     }
+  }, []);
 
-    console.log('Rendering Customize Spartan panel');
-
-    return (
-      <motion.div
-        ref={customizeRef}
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -10 }}
-        transition={{ duration: 0.2 }}
-        className="absolute bg-neutral-900 dark:bg-gray-100 border border-gray-700 dark:border-gray-300 rounded-xl shadow-md p-6 z-[10000] overflow-y-auto sidebar-scroll"
-        style={{
-          top: 110,
-          right: customizeButtonRef.current
-            ? window.innerWidth - customizeButtonRef.current.getBoundingClientRect().right + 16
-            : 16,
-          width: '600px',
-          height: 'calc(80vh - 100px)',
-        }}
-      >
-        <h2 className="text-lg font-semibold text-white dark:text-gray-900 mb-4">Customize Spartan</h2>
-        <div className="flex flex-col items-center space-y-6">
-          <div className="theme-toggle-container flex rounded-full bg-gray-700/50 dark:bg-gray-200/50 backdrop-blur-sm shadow-inner p-2 w-96">
-            <button
-              onClick={() => handleToggleTheme(true)}
-              className={clsx(
-                'flex items-center justify-center w-1/2 py-3 rounded-full transition-all text-lg',
-                isDarkMode ? `bg-${navColor}-600 text-white` : 'bg-transparent text-gray-300 dark:text-gray-600 hover:bg-gray-300 dark:hover:bg-gray-400'
-              )}
-            >
-              <span className="text-2xl mr-2">☀️</span> Light
-            </button>
-            <button
-              onClick={() => handleToggleTheme(false)}
-              className={clsx(
-                'flex items-center justify-center w-1/2 py-2 rounded-full transition-all text-lg',
-                !isDarkMode ? `bg-${navColor}-600 text-white` : 'bg-transparent text-gray-300 dark:text-gray-600 hover:bg-gray-300 dark:hover:bg-gray-400'
-              )}
-            >
-              <span className="text-2xl mr-2">🌙</span> Dark
-            </button>
-          </div>
-          <div className="flex flex-col items-center">
-            <h3 className="text-base font-medium text-white dark:text-gray-900 mb-2">Interface Palette</h3>
-            <div className="flex flex-wrap justify-center items-center gap-1 rounded-full bg-gray-700/50 dark:bg-gray-200/50 backdrop-blur-sm shadow-inner p-2 w-96">
-              <button
-                onClick={() => handleChangeNavColor('purple')}
-                className={clsx(
-                  'w-14 h-14 rounded-full transition-all bg-purple-600 hover:bg-purple-700',
-                  localNavColor === 'purple' ? 'ring-2 ring-white dark:ring-gray-900' : ''
-                )}
-                title="Purple"
-              />
-              <button
-                onClick={() => handleChangeNavColor('red')}
-                className={clsx(
-                  'w-14 h-14 rounded-full transition-all bg-red-600 hover:bg-red-700',
-                  localNavColor === 'red' ? 'ring-2 ring-white dark:ring-gray-900' : ''
-                )}
-                title="Red"
-              />
-              <button
-                onClick={() => handleChangeNavColor('orange')}
-                className={clsx(
-                  'w-14 h-14 rounded-full transition-all bg-orange-600 hover:bg-orange-700',
-                  localNavColor === 'orange' ? 'ring-2 ring-white dark:ring-gray-900' : ''
-                )}
-                title="Orange"
-              />
-              <button
-                onClick={() => handleChangeNavColor('green')}
-                className={clsx(
-                  'w-14 h-14 rounded-full transition-all bg-green-600 hover:bg-green-700',
-                  localNavColor === 'green' ? 'ring-2 ring-white dark:ring-gray-900' : ''
-                )}
-                title="Green"
-              />
-              <button
-                onClick={() => handleChangeNavColor('yellow')}
-                className={clsx(
-                  'w-14 h-14 rounded-full transition-all bg-yellow-600 hover:bg-yellow-700',
-                  localNavColor === 'yellow' ? 'ring-2 ring-white dark:ring-gray-900' : ''
-                )}
-                title="Yellow"
-              />
-              <button
-                onClick={() => handleChangeNavColor('blue')}
-                className={clsx(
-                  'w-14 h-14 rounded-full transition-all bg-blue-600 hover:bg-blue-700',
-                  localNavColor === 'blue' ? 'ring-2 ring-white dark:ring-gray-900' : ''
-                )}
-                title="Blue"
-              />
-              <button
-                onClick={() => handleChangeNavColor('pink')}
-                className={clsx(
-                  'w-14 h-14 rounded-full transition-all bg-pink-600 hover:bg-pink-700',
-                  localNavColor === 'pink' ? 'ring-2 ring-white dark:ring-gray-900' : ''
-                )}
-                title="Pink"
-              />
-            </div>
-          </div>
-        </div>
-      </motion.div>
-    );
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    setIsDarkMode(newTheme === 'dark');
+    localStorage.setItem('theme', newTheme);
+    if (newTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    handleSaveConfig({ isDarkMode: newTheme === 'dark' });
   };
 
-  return renderCustomizePanel();
+  const handleSaveConfig = async (updates: Partial<ITDTools>) => {
+    const currentConfig = await window.electronAPI.getConfig();
+    const updatedConfig: Config = {
+      ...currentConfig,
+      itdTools: {
+        ...currentConfig.itdTools,
+        ...updates,
+      },
+    };
+    await saveConfig(updatedConfig);
+  };
+
+  const handleColorChange = (color: string) => {
+    setNavColor(color);
+    handleSaveConfig({ navBackgroundColor: color });
+  };
+
+  const colors = ['purple', 'red', 'orange', 'green', 'yellow', 'blue', 'pink'];
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ x: '100%' }}
+          animate={{ x: 0 }}
+          exit={{ x: '100%' }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          className={clsx(
+            'fixed top-0 right-0 h-full w-64 bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white p-4 sidebar-scroll z-50 shadow-lg'
+          )}
+        >
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-lg font-semibold">Customize Spartan</h2>
+            <button onClick={toggle} className="text-2xl">×</button>
+          </div>
+
+          <div className="mb-6">
+            <h3 className="text-sm font-medium mb-2">Theme</h3>
+            <ThemeToggle
+              theme={theme}
+              toggleTheme={toggleTheme}
+              isDarkMode={isDarkMode}
+              setIsDarkMode={setIsDarkMode}
+              saveConfig={handleSaveConfig}
+            />
+          </div>
+
+          <div>
+            <h3 className="text-sm font-medium mb-2">Navigation Color</h3>
+            <div className="grid grid-cols-4 gap-2">
+              {colors.map((color) => (
+                <button
+                  key={color}
+                  onClick={() => handleColorChange(color)}
+                  className={clsx(
+                    `w-8 h-8 rounded-full bg-${color}-500`,
+                    navColor === color && 'ring-2 ring-offset-2 ring-gray-900 dark:ring-gray-100'
+                  )}
+                  title={color.charAt(0).toUpperCase() + color.slice(1)}
+                />
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 };
 
 export default CustomizeSpartanPanel;

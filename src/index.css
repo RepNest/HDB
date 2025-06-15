@@ -45,4 +45,10 @@ html:not(.dark) .sidebar-scroll::-webkit-scrollbar-thumb:hover {
 /* Sidebar transition for hover effect */
 .sidebar-container {
   transition: width 0.3s ease-in-out;
+  position: relative;
+}
+
+/* Toggle button styling */
+.toggle-button-container {
+  margin-left: 16px; /* Shift toggle button to the right */
 }

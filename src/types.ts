@@ -140,6 +140,14 @@ export interface SidebarButtonsProps {
   setIsEditMode: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
+export interface ThemeToggleProps {
+  theme: 'light' | 'dark';
+  toggleTheme: () => void;
+  isDarkMode: boolean;
+  setIsDarkMode: React.Dispatch<React.SetStateAction<boolean>>;
+  saveConfig: (updates: Partial<ITDTools>) => Promise<void>;
+}
+
 declare global {
   interface Window {
     electronAPI: ElectronAPI;

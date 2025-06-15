@@ -52,9 +52,9 @@ const defaultConfig: Config = {
   },
   itdTools: {
     buttonOrder: itdButtons.map(b => b.id),
-    visibleITDButtons: itdButtons.map(b => b.id),
-    appsOrder: ['0', '1', '2', '3', '4', '5', '6'],
-    visibleApps: ['0', '1', '2', '3', '4', '5', '6'],
+    visibleITDButtons: itdButtons.filter(b => b.id !== 'goToCitrixManager').map(b => b.id),
+    appsOrder: ['2', '3', '4', '5', '6'],
+    visibleApps: ['2', '3', '4', '5', '6'],
     isEditMode: false,
     navBackgroundColor: 'purple',
     isDarkMode: true,
@@ -83,7 +83,23 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen: propIsOpen, toggle, navColor,
   const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
   const [buttonSize, setButtonSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [isOpen, setIsOpen] = useState(propIsOpen);
+  const [showNeonHue, setShowNeonHue] = useState(false);
   const minimizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Map navColor to RGB values for box-shadow
+  const colorMap: Record<string, string> = {
+    purple: '168, 85, 247', // purple-500
+    red: '239, 68, 68', // red-500
+    orange: '249, 115, 22', // orange-500
+    green: '34, 197, 94', // green-500
+    yellow: '234, 179, 8', // yellow-500
+    blue: '59, 130, 246', // blue-500
+    pink: '236, 72, 153', // pink-500
+  };
+
+  const neonShadow = showNeonHue
+    ? `0 0 12px 4px rgba(${colorMap[navColor] || colorMap.purple}, 0.6)`
+    : 'none';
 
   useEffect(() => {
     const loadConfig = async () => {
@@ -91,8 +107,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen: propIsOpen, toggle, navColor,
         const config: Config = await window.electronAPI.getConfig();
         console.log('Sidebar config loaded:', config);
         if (config.apps.length) {
-          const appsOrder = config.itdTools.appsOrder || config.apps.map((_, i) => i.toString());
-          const visibleApps = config.itdTools.visibleApps || config.apps.map((_, i) => i.toString());
+          const appsOrder = config.itdTools.appsOrder || config.apps.map((_, i) => i.toString()).filter(i => !['0', '1'].includes(i));
+          const visibleApps = config.itdTools.visibleApps || config.apps.map((_, i) => i.toString()).filter(i => !['0', '1'].includes(i));
           setApps(config.apps);
           setVisibleAppsIndices(visibleApps);
           console.log('Apps set:', config.apps, 'Visible indices:', visibleApps);
@@ -103,7 +119,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen: propIsOpen, toggle, navColor,
         }
         setFavorites(config.favorites || {});
         if (config.itdTools.buttonOrder) {
-          const visibleButtons = config.itdTools.visibleITDButtons || itdButtons.map(b => b.id);
+          const visibleButtons = config.itdTools.visibleITDButtons || itdButtons.filter(b => b.id !== 'goToCitrixManager').map(b => b.id);
           const orderedButtons = config.itdTools.buttonOrder
             .map(buttonId => itdButtons.find(b => b.id === buttonId))
             .filter((b): b is ITDButton => !!b && visibleButtons.includes(b.id));
@@ -119,8 +135,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen: propIsOpen, toggle, navColor,
         setApps(defaultConfig.apps);
         setVisibleAppsIndices(defaultConfig.itdTools.visibleApps);
         setFavorites(defaultConfig.favorites);
-        setITDToolsButtons(itdButtons);
-        setVisibleITDButtons(itdButtons.map(b => b.id));
+        setITDToolsButtons(itdButtons.filter(b => b.id !== 'goToCitrixManager'));
+        setVisibleITDButtons(itdButtons.filter(b => b.id !== 'goToCitrixManager').map(b => b.id));
       }
     };
     loadConfig();
@@ -170,6 +186,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen: propIsOpen, toggle, navColor,
       minimizeTimeoutRef.current = null;
     }
     setIsOpen(true);
+    setShowNeonHue(true);
+    console.log('Mouse entered sidebar, showNeonHue:', true, 'navColor:', navColor);
     saveConfig(
       visibleAppsIndices,
       visibleAppsIndices,
@@ -184,6 +202,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen: propIsOpen, toggle, navColor,
   const handleMouseLeave = () => {
     minimizeTimeoutRef.current = setTimeout(() => {
       setIsOpen(false);
+      setShowNeonHue(false);
+      console.log('Mouse left sidebar, showNeonHue:', false, 'navColor:', navColor);
       saveConfig(
         visibleAppsIndices,
         visibleAppsIndices,
@@ -193,11 +213,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen: propIsOpen, toggle, navColor,
         buttonSize,
         true
       );
-    }, 300); // 300ms delay to prevent jitter
+    }, 300);
   };
 
   const handleToggle = () => {
-    toggle(); // Call parent toggle for compatibility with App.tsx
+    toggle();
     setIsOpen(!isOpen);
     saveConfig(
       visibleAppsIndices,
@@ -210,6 +230,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen: propIsOpen, toggle, navColor,
     );
   };
 
+  console.log('Sidebar render, className:', {
+    isOpen,
+    showNeonHue,
+    navColor,
+    neonShadow,
+  }); // Debug render
+
   return (
     <div
       className={clsx(
@@ -217,10 +244,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen: propIsOpen, toggle, navColor,
         `bg-${navColor}-600 dark:bg-${navColor}-300`,
         isOpen ? 'w-64' : 'w-16'
       )}
+      style={{ boxShadow: neonShadow, transition: 'width 0.3s ease-in-out, box-shadow 0.2s ease-in-out' }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <div className="py-4 px-2">
+      <div className="py-4 px-2 toggle-button-container">
         <button
           onClick={handleToggle}
           className={clsx(

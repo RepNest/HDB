@@ -99,7 +99,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex flex-col h-screen overflow-hidden" style={{ width: '100%' }}>
       <Tabs
         tabs={tabs}
         activeTabId={activeTabId}
@@ -109,35 +109,37 @@ const App: React.FC = () => {
         navColor={navColor}
         isDarkMode={isDarkMode}
       />
-      <Navbar
-        url={tabs.find(tab => tab.id === activeTabId)?.url || ''}
-        webviewRef={webviews.current[activeTabId] || null}
-        onNavigate={handleNavigate}
-        onZoomIn={handleZoomIn}
-        onZoomOut={handleZoomOut}
-        onResetZoom={handleResetZoom}
-        zoomLevel={zoomLevel}
-        onNewTab={handleNewTab}
-        onNewWindow={() => window.electronAPI.ipc.send('new-window')}
-        onNewPrivateWindow={() => window.electronAPI.ipc.send('new-private-window')}
-        zoom={Math.min(window.innerWidth / baseWidth, 1)}
-        navColor={navColor}
-      />
-      <FavoritesBar
-        favorites={{
-          ' ': [{ name: 'Google', url: 'https://www.google.com', favicon: 'https://www.google.com/favicon.ico' }],
-          'Frequent Sites': [
-            { name: 'ITD Intra', url: 'https://miamidadecounty.sharepoint.com/sites/ITD-Intra', favicon: 'https://miamidadecounty.sharepoint.com/favicon.ico' },
-            { name: 'Outlook', url: 'https://outlook.office.com', favicon: 'https://outlook.office.com/favicon.ico' },
-            { name: 'Citrix Secure Sign In', url: 'https://xenapp.cloud.com', favicon: 'https://xenapp.cloud.com/favicon.ico' },
-            { name: 'Sign In - Webex', url: 'https://desktop.wxcc-us1.cisco.com/iframe-widget', favicon: 'https://desktop.wxcc-us1.cisco.com/favicon.ico' },
-            { name: 'IT Service Desk - Home', url: 'https://miamidadecounty.sharepoint.com/sites/ITServiceDesk', favicon: 'https://miamidadecounty.sharepoint.com/favicon.ico' },
-          ],
-        }}
-        onNavigate={handleNavigate}
-        navColor={navColor}
-        isDarkMode={isDarkMode}
-      />
+      <div className="flex flex-col w-full" style={{ flexGrow: 0 }}>
+        <Navbar
+          url={tabs.find(tab => tab.id === activeTabId)?.url || ''}
+          webviewRef={webviews.current[activeTabId] || null}
+          onNavigate={handleNavigate}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onResetZoom={handleResetZoom}
+          zoomLevel={zoomLevel}
+          onNewTab={handleNewTab}
+          onNewWindow={() => window.electronAPI.ipc.send('new-window')}
+          onNewPrivateWindow={() => window.electronAPI.ipc.send('new-private-window')}
+          zoom={Math.min(window.innerWidth / baseWidth, 1)}
+          navColor={navColor}
+        />
+        <FavoritesBar
+          favorites={{
+            ' ': [{ name: 'Google', url: 'https://www.google.com', favicon: 'https://www.google.com/favicon.ico' }],
+            'Frequent Sites': [
+              { name: 'ITD Intra', url: 'https://miamidadecounty.sharepoint.com/sites/ITD-Intra', favicon: 'https://miamidadecounty.sharepoint.com/favicon.ico' },
+              { name: 'Outlook', url: 'https://outlook.office.com', favicon: 'https://outlook.office.com/favicon.ico' },
+              { name: 'Citrix Secure Sign In', url: 'https://xenapp.cloud.com', favicon: 'https://xenapp.cloud.com/favicon.ico' },
+              { name: 'Sign In - Webex', url: 'https://desktop.wxcc-us1.cisco.com/iframe-widget', favicon: 'https://desktop.wxcc-us1.cisco.com/favicon.ico' },
+              { name: 'IT Service Desk - Home', url: 'https://miamidadecounty.sharepoint.com/sites/ITServiceDesk', favicon: 'https://miamidadecounty.sharepoint.com/favicon.ico' },
+            ],
+          }}
+          onNavigate={handleNavigate}
+          navColor={navColor}
+          isDarkMode={isDarkMode}
+        />
+      </div>
       <div className="flex flex-1 overflow-auto" style={{ minHeight: 0 }}>
         <Sidebar
           isOpen={sidebarOpen}

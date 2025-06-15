@@ -17,7 +17,7 @@ const Tabs: React.FC<TabsProps> = ({ tabs, activeTabId, onTabClick, onCloseTab, 
   return (
     <div
       className={clsx(
-        'flex items-center border-b overflow-x-auto z-[900]',
+        'flex items-center border-b overflow-x-auto z-[900] w-full',
         isDarkMode ? 'bg-neutral-900 border-gray-700' : 'bg-gray-100 border-gray-300'
       )}
     >

@@ -20,7 +20,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ favorites, onNavigate, navC
   return (
     <div
       className={clsx(
-        'flex items-center p-2 border-b z-[800]',
+        'flex items-center p-2 border-b z-[800] w-full',
         isDarkMode ? `bg-gray-800 border-gray-700 bg-${navColor}-900/20` : `bg-gray-50 border-gray-300 bg-${navColor}-50`
       )}
     >

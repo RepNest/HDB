@@ -184,7 +184,7 @@ const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={() => handleToggleTheme(false)}
               className={clsx(
-                'flex items-center justify-center w-1/2 py-3 rounded-full transition-all text-lg',
+                'flex items-center justify-center w-1/2 py-2 rounded-full transition-all text-lg',
                 !isDarkMode ? `bg-${navColor}-600 text-white` : 'bg-transparent text-gray-300 dark:text-gray-600 hover:bg-gray-300 dark:hover:bg-gray-400'
               )}
             >
@@ -260,10 +260,10 @@ const Navbar: React.FC<NavbarProps> = ({
   return (
     <div
       className={clsx(
-        'flex items-center p-1 shadow-md relative z-[1000]',
+        'flex items-center p-1 shadow-md relative z-[1000] w-full',
         `bg-${navColor}-600 dark:bg-${navColor}-300`
       )}
-      style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }}
+      style={{ width: '100%' }}
     >
       <div className="flex items-center gap-1">
         <button

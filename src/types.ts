@@ -112,6 +112,34 @@ export interface ElectronAPI {
   onNewTab: (callback: (url: string) => void) => void;
 }
 
+export interface SidebarButtonsProps {
+  apps: AppConfig[];
+  visibleAppsIndices: string[];
+  favorites: Favorites;
+  itdToolsButtons: ITDButton[];
+  visibleITDButtons: string[];
+  isEditMode: boolean;
+  isDarkMode: boolean;
+  buttonSize: 'small' | 'medium' | 'large';
+  isOpen: boolean;
+  navColor: string;
+  handleNewTab: (url: string) => void;
+  handleQueryViewer: () => void;
+  saveConfig: (
+    newAppsOrder: string[],
+    newVisibleApps: string[],
+    newButtonOrder: string[],
+    newVisibleITDButtons: string[],
+    newEditMode: boolean,
+    newButtonSize: 'small' | 'medium' | 'large'
+  ) => Promise<void>;
+  launchApp: (cmd: string) => void;
+  setVisibleAppsIndices: React.Dispatch<React.SetStateAction<string[]>>;
+  setITDToolsButtons: React.Dispatch<React.SetStateAction<ITDButton[]>>;
+  setVisibleITDButtons: React.Dispatch<React.SetStateAction<string[]>>;
+  setIsEditMode: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
 declare global {
   interface Window {
     electronAPI: ElectronAPI;

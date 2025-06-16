@@ -2,8 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeftIcon, ChevronRightIcon, ArrowPathIcon, MinusIcon, PlusIcon, Bars3Icon } from '@heroicons/react/24/solid';
-import { Config, ElectronWebview } from '../types';
+import { Config, ElectronWebview, Tab } from '../types';
 import CustomizeSpartanPanel from './CustomizeSpartanPanel';
+import BookmarkPopup from './BookmarkPopup';
 
 interface NavbarProps {
   webviewRef: ElectronWebview | null;
@@ -20,6 +21,8 @@ interface NavbarProps {
   navColor: string;
   config: Config;
   setConfig: React.Dispatch<React.SetStateAction<Config>>;
+  setCustomizeOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  pinnedTabs: Tab[]; // Added pinnedTabs
 }
 
 const Navbar: React.FC<NavbarProps> = ({
@@ -37,21 +40,27 @@ const Navbar: React.FC<NavbarProps> = ({
   navColor,
   config,
   setConfig,
+  setCustomizeOpen,
+  pinnedTabs,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [customizeOpen, setCustomizeOpen] = useState(false);
+  const [customizeOpen, setLocalCustomizeOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
+  const [popupOpen, setPopupOpen] = useState(false);
   const addressInput = useRef<HTMLInputElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const customizeButtonRef = useRef<HTMLButtonElement>(null);
   const starButtonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
-  const [popupOpen, setPopupOpen] = useState(false);
 
   useEffect(() => {
     setIsDarkMode(config.itdTools.isDarkMode ?? true);
   }, [config.itdTools.isDarkMode]);
+
+  useEffect(() => {
+    setCustomizeOpen(customizeOpen);
+  }, [customizeOpen, setCustomizeOpen]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -176,30 +185,26 @@ const Navbar: React.FC<NavbarProps> = ({
             </button>
             <AnimatePresence>
               {popupOpen && (
-                <motion.div
-                  ref={popupRef}
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}
-                  className={clsx(
-                    'absolute border rounded-lg shadow-md p-4 z-[1000]',
-                    isDarkMode
-                      ? 'bg-neutral-900 border-gray-700 text-white'
-                      : 'bg-gray-100 border-gray-300 text-gray-900'
-                  )}
-                  style={{
-                    top: 'calc(100% + 4px)',
-                    right:
-                      addressInput.current && starButtonRef.current
-                        ? addressInput.current.offsetWidth - starButtonRef.current.offsetLeft - starButtonRef.current.offsetWidth
-                        : 0,
-                    minWidth: '200px',
-                  }}
-                >
-                  <p>Bookmark this page</p>
-                  {/* Placeholder content for the pop-up */}
-                </motion.div>
+                <div ref={popupRef}>
+                  <BookmarkPopup
+                    isOpen={popupOpen}
+                    onClose={() => setPopupOpen(false)}
+                    url={url}
+                    webviewRef={webviewRef}
+                    config={config}
+                    setConfig={setConfig}
+                    isDarkMode={isDarkMode}
+                    position={{
+                      top: 'calc(100% + 4px)',
+                      right:
+                        addressInput.current && starButtonRef.current
+                          ? addressInput.current.offsetWidth -
+                            starButtonRef.current.offsetLeft -
+                            starButtonRef.current.offsetWidth
+                          : 0,
+                    }}
+                  />
+                </div>
               )}
             </AnimatePresence>
           </div>
@@ -208,7 +213,7 @@ const Navbar: React.FC<NavbarProps> = ({
           <div className="flex items-center gap-1">
             <button
               ref={customizeButtonRef}
-              onClick={() => setCustomizeOpen(!customizeOpen)}
+              onClick={() => setLocalCustomizeOpen(!customizeOpen)}
               className={clsx(
                 'w-10 h-10 flex items-center justify-center rounded-full transition-all',
                 isDarkMode
@@ -341,9 +346,10 @@ const Navbar: React.FC<NavbarProps> = ({
       {customizeOpen && (
         <CustomizeSpartanPanel
           isOpen={customizeOpen}
-          toggle={() => setCustomizeOpen(false)}
+          toggle={() => setLocalCustomizeOpen(false)}
           config={config}
           setConfig={setConfig}
+          pinnedTabs={pinnedTabs} // Fixed: Added pinnedTabs
         />
       )}
     </div>

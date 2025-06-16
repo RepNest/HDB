@@ -4,30 +4,92 @@ import { Config, AppConfig, ITDButton, Favorites } from '../types';
 import SidebarButtons from './SidebarButtons.tsx';
 
 const itdButtons: ITDButton[] = [
-  { id: 'clearData', text: 'Go to INFORMS', url: 'https://informs.miamidade.gov' },
-  { id: 'goToQueryViewer', text: 'Go to Query Viewer', url: 'https://ehrprd.miamidade.gov/psc/EHR92PRD_2/EMPLOYEE/HRMS/q/?ICAction=ICQryNameURL=PUBLIC.MD_HELPDESK_ID_SEARCH' },
-  { id: 'goToCitrix', text: 'Go to Citrix', url: 'https://xenapp.cloud.com/monitor?customerId=MiamiDadeCou' },
+  { 
+    id: 'clearData', 
+    text: 'Go to INFORMS', 
+    url: 'https://informs.miamidade.gov', 
+    favicon: 'https://informs.miamidade.gov/favicon.ico' 
+  },
+  { 
+    id: 'goToQueryViewer', 
+    text: 'Go to Query Viewer', 
+    url: 'https://ehrprd.miamidade.gov/psc/EHR92PRD_2/EMPLOYEE/HRMS/q/?ICAction=ICQryNameURL=PUBLIC.MD_HELPDESK_ID_SEARCH', 
+    favicon: 'https://ehrprd.miamidade.gov/favicon.ico' 
+  },
+  { 
+    id: 'goToCitrix', 
+    text: 'Go to Citrix', 
+    url: 'https://xenapp.cloud.com/monitor?customerId=MiamiDadeCou', 
+    favicon: 'https://xenapp.cloud.com/favicon.ico' 
+  },
   {
     id: 'goToNSD',
     text: 'Go to NSD',
+    favicon: 'https://nsd.miamidade.gov/favicon.ico',
     submenu: [
-      { id: 'goToActiveDirectorySearch', text: 'Active Directory Search', url: 'https://nsd.miamidade.gov/active-directory/user/' },
-      { id: 'goToCalendars', text: 'Calendars', url: 'https://nsd.miamidade.gov/calendar/calendar-main' },
-      { id: 'goToNetworkTools', text: 'Network Tools', url: 'https://nsd.miamidade.gov/apps/app-list/net' },
+      { 
+        id: 'goToActiveDirectorySearch', 
+        text: 'Active Directory Search', 
+        url: 'https://nsd.miamidade.gov/active-directory/user/', 
+        favicon: 'https://nsd.miamidade.gov/favicon.ico' 
+      },
+      { 
+        id: 'goToCalendars', 
+        text: 'Calendars', 
+        url: 'https://nsd.miamidade.gov/calendar/calendar-main', 
+        favicon: 'https://nsd.miamidade.gov/favicon.ico' 
+      },
+      { 
+        id: 'goToNetworkTools', 
+        text: 'Network Tools', 
+        url: 'https://nsd.miamidade.gov/apps/app-list/net', 
+        favicon: 'https://nsd.miamidade.gov/favicon.ico' 
+      },
     ],
   },
-  { id: 'goToEpar', text: 'Go to EPAR', url: 'https://hrprd.miamidade.gov/psp/HRPRD/EMPLOYEE/HRMS/c/MAINTAIN_SECURITY.USERMAINT.GBL?FolderPath=PORTAL_ROOT_OBJECT.PT_PEOPLETOOLS.PT_SECURITY.PT_USER_PROFILES.PT_USERMAINT_GBL&IsFolder=false&IgnoreParamTempl=FolderPath%2cIsFolder' },
-  { id: 'goToSmartIT', text: 'Go to Smart IT', url: 'https://miamidade-smartit.us.onbmc.com/smartit/app/#/create/smart-recorder' },
-  { id: 'goToAzure', text: 'Go to Azure', url: 'https://portal.azure.com/#view/Microsoft_Azure_PIMCommon/ActivationMenuBlade/~/aadmigratedroles' },
+  { 
+    id: 'goToEpar', 
+    text: 'Go to EPAR', 
+    url: 'https://hrprd.miamidade.gov/psp/HRPRD/EMPLOYEE/HRMS/c/MAINTAIN_SECURITY.USERMAINT.GBL?FolderPath=PORTAL_ROOT_OBJECT.PT_PEOPLETOOLS.PT_SECURITY.PT_USER_PROFILES.PT_USERMAINT_GBL&IsFolder=false&IgnoreParamTempl=FolderPath%2cIsFolder', 
+    favicon: 'https://hrprd.miamidade.gov/favicon.ico' 
+  },
+  { 
+    id: 'goToSmartIT', 
+    text: 'Go to Smart IT', 
+    url: 'https://miamidade-smartit.us.onbmc.com/smartit/app/#/create/smart-recorder', 
+    favicon: 'https://miamidade-smartit.us.onbmc.com/favicon.ico' 
+  },
+  { 
+    id: 'goToAzure', 
+    text: 'Go to Azure', 
+    url: 'https://portal.azure.com/#view/Microsoft_Azure_PIMCommon/ActivationMenuBlade/~/aadmigratedroles', 
+    favicon: 'https://portal.azure.com/favicon.ico' 
+  },
   {
     id: 'goToEAMS',
     text: 'Go to EAMS',
+    favicon: 'https://prdentext.miamidade.gov/favicon.ico',
     submenu: [
-      { id: 'goToDTPW', text: 'DTPW (TRANSIT)', url: 'https://prdentext.miamidade.gov:7443/web/base/logindisp?tenant=MDTPROD' },
-      { id: 'goToPROS', text: 'PROS (PARKS)', url: 'https://prdentext.miamidade.gov:7443/web/base/logindisp?tenant=PRKPROD' },
+      { 
+        id: 'goToDTPW', 
+        text: 'DTPW (TRANSIT)', 
+        url: 'https://prdentext.miamidade.gov:7443/web/base/logindisp?tenant=MDTPROD', 
+        favicon: 'https://prdentext.miamidade.gov/favicon.ico' 
+      },
+      { 
+        id: 'goToPROS', 
+        text: 'PROS (PARKS)', 
+        url: 'https://prdentext.miamidade.gov:7443/web/base/logindisp?tenant=PRKPROD', 
+        favicon: 'https://prdentext.miamidade.gov/favicon.ico' 
+      },
     ],
   },
-  { id: 'goToCitrixManager', text: 'Go to Citrix (Manager)', url: 'https://xenapp.cloud.com/manage/webstudio/home' },
+  { 
+    id: 'goToCitrixManager', 
+    text: 'Go to Citrix (Manager)', 
+    url: 'https://xenapp.cloud.com/manage/webstudio/home', 
+    favicon: 'https://xenapp.cloud.com/favicon.ico' 
+  },
 ];
 
 const defaultConfig: Config = {

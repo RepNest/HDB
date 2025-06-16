@@ -43,7 +43,7 @@ function initializeUserConfig() {
     const current = readConfig();
     let changed = false;
 
-    ['apps', 'favorites', 'sidebarCollapsed', 'itdTools', 'history'].forEach(key => {
+    ['apps', 'favorites', 'sidebarCollapsed', 'itdTools', 'history'].forEach((key) => {
       if (!(key in current)) {
         current[key] = defaultConfig[key] || (key === 'itdTools' ? {} : key === 'history' ? [] : {});
         changed = true;
@@ -120,11 +120,11 @@ app.on('web-contents-created', (_event, contents) => {
           });
 
           if (savePath) {
-            https.get(params.srcURL, response => {
+            https.get(params.srcURL, (response) => {
               const file = fs.createWriteStream(savePath);
               response.pipe(file);
               file.on('finish', () => file.close());
-            }).on('error', err => {
+            }).on('error', (err) => {
               console.error('❌ Failed to save image:', err.message);
             });
           }
@@ -192,7 +192,7 @@ ipcMain.handle('get-user-config', async () => {
     const config = readConfig();
     return config;
   } catch (err) {
-    console.error('❌ Failed to read user config:', err.message);
+    console.error(`❌ Failed to read user config for ${USERNAME} at ${new Date().toISOString()}:`, err.message);
     return {
       sidebarCollapsed: false,
       apps: [],
@@ -207,9 +207,10 @@ ipcMain.handle('get-user-config', async () => {
 ipcMain.handle('save-config', async (_, updatedConfig) => {
   try {
     writeConfig(updatedConfig);
+    console.log(`Config saved for ${USERNAME} at ${new Date().toISOString()}`);
     return true;
   } catch (err) {
-    console.error('❌ Failed to save config:', err.message);
+    console.error(`❌ Failed to save config for ${USERNAME} at ${new Date().toISOString()}:`, err.message);
     return false;
   }
 });
@@ -228,9 +229,10 @@ ipcMain.handle('save-favorites', async (_, updatedFavorites) => {
     const config = readConfig();
     config.favorites = updatedFavorites;
     writeConfig(config);
+    console.log(`Favorites saved for ${USERNAME} at ${new Date().toISOString()}`);
     return true;
   } catch (err) {
-    console.error('❌ Failed to save favorites:', err.message);
+    console.error(`❌ Failed to save favorites for ${USERNAME} at ${new Date().toISOString()}:`, err.message);
     return false;
   }
 });
@@ -254,8 +256,9 @@ ipcMain.handle('save-history', async (_, newHistory) => {
     }
     config.history = flatHistory;
     writeConfig(config);
+    console.log(`History saved for ${USERNAME} at ${new Date().toISOString()}`);
   } catch (err) {
-    console.error('❌ Failed to save history:', err.message);
+    console.error(`❌ Failed to save history for ${USERNAME} at ${new Date().toISOString()}:`, err.message);
   }
 });
 
@@ -264,7 +267,7 @@ ipcMain.handle('get-history', async () => {
     const config = readConfig();
     return config.history || [];
   } catch (err) {
-    console.error('❌ Failed to load history:', err.message);
+    console.error(`❌ Failed to load history for ${USERNAME} at ${new Date().toISOString()}:`, err.message);
     return [];
   }
 });
@@ -282,8 +285,9 @@ ipcMain.handle('launch-app', async (_, cmd) => {
     } else {
       spawn('cmd', ['/c', cmd], { shell: true, detached: true, stdio: 'ignore', windowsHide: true }).unref();
     }
+    console.log(`Launched app with command "${cmd}" for ${USERNAME} at ${new Date().toISOString()}`);
   } catch (err) {
-    console.error('🚨 Failed to launch app:', err.message);
+    console.error(`🚨 Failed to launch app for ${USERNAME} at ${new Date().toISOString()}:`, err.message);
   }
 });
 
@@ -295,7 +299,7 @@ app.whenReady().then(() => {
   initializeUserConfig();
   createWindow();
 
-  session.defaultSession.resolveProxy('https://outlook.office.com').then(proxy => {
+  session.defaultSession.resolveProxy('https://outlook.office.com').then((proxy) => {
     console.log('🧭 Proxy settings:', proxy);
   });
 
@@ -320,10 +324,10 @@ app.whenReady().then(() => {
 app.on('login', (event, webContents, request, authInfo, callback) => {
   event.preventDefault();
   if (!authInfo.isProxy && /miamidade\.gov|sharepoint\.com/.test(authInfo.host)) {
-    console.log(`🔐 Attempting automatic login to ${authInfo.host}`);
+    console.log(`🔐 Attempting automatic login to ${authInfo.host} for ${USERNAME} at ${new Date().toISOString()}`);
     callback('', '');
   } else {
-    console.warn('🔐 Unknown domain requested credentials:', authInfo.host);
+    console.warn(`🔐 Unknown domain requested credentials: ${authInfo.host} for ${USERNAME} at ${new Date().toISOString()}`);
   }
 });
 

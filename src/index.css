@@ -1,8 +1,33 @@
-/* Existing styles */
+/* src/index.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Tabs theming custom properties */
+:root {
+  --tab-bg-light: #F3F4F6;
+  --tab-bg-dark: #171717;
+  --tab-active-bg-light: #FFFFFF;
+  --tab-active-bg-dark: #1F2937;
+  --tab-text-light: #4B5563;
+  --tab-text-dark: #9CA3AF;
+  --tab-active-text-light: #111827;
+  --tab-active-text-dark: #FFFFFF;
+  --tab-border-light: #D1D5DB;
+  --tab-border-dark: #374151;
+  --tab-neon-shadow-purple: 0 0 8px rgba(168, 85, 247, 0.6);
+  --tab-neon-shadow-red: 0 0 8px rgba(239, 68, 68, 0.6);
+  --tab-neon-shadow-orange: 0 0 8px rgba(249, 115, 22, 0.6);
+  --tab-neon-shadow-green: 0 0 8px rgba(34, 197, 94, 0.6);
+  --tab-neon-shadow-yellow: 0 0 8px rgba(234, 179, 8, 0.6);
+  --tab-neon-shadow-blue: 0 0 8px rgba(59, 130, 246, 0.6);
+  --tab-neon-shadow-pink: 0 0 8px rgba(236, 72, 153, 0.6);
+  --tab-border-width-thin: 1px;
+  --tab-border-width-medium: 2px;
+  --tab-border-width-thick: 4px;
+}
+
+/* Existing animations */
 @keyframes new-tab {
   from { opacity: 0; transform: translateX(16px); }
   to { opacity: 1; transform: translateX(0); }
@@ -51,4 +76,9 @@ html:not(.dark) .sidebar-scroll::-webkit-scrollbar-thumb:hover {
 /* Toggle button styling */
 .toggle-button-container {
   margin-left: 20px; /* Shift toggle button to the right */
+}
+
+/* Customize Spartan panel styling */
+.customize-spartan-panel {
+  border-radius: 16px;
 }

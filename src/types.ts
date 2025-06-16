@@ -24,7 +24,8 @@ export interface ITDButton {
   id: string;
   text: string;
   url?: string;
-  submenu?: { id: string; text: string; url: string }[];
+  favicon?: string;
+  submenu?: { id: string; text: string; url: string; favicon?: string }[];
 }
 
 export interface ITDTools {
@@ -37,6 +38,8 @@ export interface ITDTools {
   buttonBackgroundColor?: string;
   isDarkMode: boolean;
   buttonSize: 'small' | 'medium' | 'large' | 'xlarge';
+  tabBorderWidth?: 'thin' | 'medium' | 'thick'; // New
+  highContrast?: boolean; // New
 }
 
 export interface Config {
@@ -46,6 +49,7 @@ export interface Config {
   itdTools: ITDTools;
   history: HistoryEntry[];
   createdAt: string;
+  pinnedTabs?: Tab[]; // New
 }
 
 export interface Tab {
@@ -53,6 +57,8 @@ export interface Tab {
   title: string;
   url: string;
   isNew?: boolean;
+  pinned?: boolean;
+  favicon?: string;
 }
 
 export interface ElectronWebview extends HTMLWebViewElement {

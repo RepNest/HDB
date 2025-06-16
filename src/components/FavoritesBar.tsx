@@ -8,9 +8,10 @@ interface FavoritesBarProps {
   onNavigate: (url: string) => void;
   navColor: string;
   isDarkMode: boolean;
+  className?: string;
 }
 
-const FavoritesBar: React.FC<FavoritesBarProps> = ({ favorites, onNavigate, navColor, isDarkMode }) => {
+const FavoritesBar: React.FC<FavoritesBarProps> = ({ favorites, onNavigate, navColor, isDarkMode, className }) => {
   const [openFolder, setOpenFolder] = useState<string | null>(null);
 
   const toggleFolder = (folder: string) => {
@@ -21,7 +22,8 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({ favorites, onNavigate, navC
     <div
       className={clsx(
         'flex items-center p-2 border-b z-[800] w-full',
-        isDarkMode ? `bg-${navColor}-300 border-${navColor}-400` : `bg-${navColor}-600 border-${navColor}-700`
+        isDarkMode ? `bg-${navColor}-300 border-${navColor}-400` : `bg-${navColor}-600 border-${navColor}-700`,
+        className
       )}
     >
       {Object.entries(favorites).map(([folder, items]) => (

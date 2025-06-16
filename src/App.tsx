@@ -123,7 +123,7 @@ const App: React.FC = () => {
         navColor={config.itdTools.navBackgroundColor || 'purple'}
         isDarkMode={config.itdTools.isDarkMode ?? true}
       />
-      <div className="flex flex-col w-full mt-1" style={{ flexGrow: 0 }}>
+      <div className="flex flex-col w-full mt-[0.5px]" style={{ flexGrow: 0 }}>
         <Navbar
           url={tabs.find(tab => tab.id === activeTabId)?.url || ''}
           webviewRef={webviews.current[activeTabId] || null}
@@ -141,6 +141,7 @@ const App: React.FC = () => {
           setConfig={setConfig}
         />
         <FavoritesBar
+          className="translate-y-2"
           favorites={{
             ' ': [{ name: 'Google', url: 'https://www.google.com', favicon: 'https://www.google.com/favicon.ico' }],
             'Frequent Sites': [

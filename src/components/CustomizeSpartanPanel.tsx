@@ -68,16 +68,16 @@ const CustomizeSpartanPanel: React.FC<CustomizeSpartanPanelProps> = ({
           exit={{ x: '100%' }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           className={clsx(
-            'fixed top-0 right-0 h-full w-64 bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white p-4 sidebar-scroll z-50 shadow-lg'
+            'fixed top-[120px] right-0 h-[70vh] w-64 bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white p-4 sidebar-scroll z-50 shadow-lg'
           )}
         >
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex justify-between items-center mb-3">
             <h2 className="text-lg font-semibold">Customize Spartan</h2>
             <button onClick={toggle} className="text-2xl">×</button>
           </div>
 
-          <div className="mb-6">
-            <h3 className="text-sm font-medium mb-2">Theme</h3>
+          <div className="mb-3">
+            <h3 className="text-sm font-medium mb-1">Theme</h3>
             <ThemeToggle
               theme={theme}
               toggleTheme={toggleTheme}
@@ -98,7 +98,7 @@ const CustomizeSpartanPanel: React.FC<CustomizeSpartanPanelProps> = ({
           </div>
 
           <div>
-            <h3 className="text-sm font-medium mb-2">Navigation Color</h3>
+            <h3 className="text-sm font-medium mb-1">Navigation Color</h3>
             <div className="grid grid-cols-4 gap-2">
               {colors.map((color) => (
                 <button

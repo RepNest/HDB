@@ -91,7 +91,7 @@ const Navbar: React.FC<NavbarProps> = ({
   return (
     <div
       className={clsx(
-        'flex items-center p-1 shadow-md relative z-[1000] w-full',
+        'flex items-center pt-1 pr-1 pb-3 pl-1 shadow-md relative z-[1000] w-full',
         `bg-${navColor}-600 dark:bg-${navColor}-300`
       )}
       style={{ width: '100%' }}

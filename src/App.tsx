@@ -141,7 +141,7 @@ const App: React.FC = () => {
           setConfig={setConfig}
         />
         <FavoritesBar
-          className="translate-y-2"
+          className="translate-y-[0.25px]"
           favorites={{
             ' ': [{ name: 'Google', url: 'https://www.google.com', favicon: 'https://www.google.com/favicon.ico' }],
             'Frequent Sites': [

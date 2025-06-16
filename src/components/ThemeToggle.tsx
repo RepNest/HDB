@@ -9,13 +9,10 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({
   toggleTheme,
   isDarkMode,
   setIsDarkMode,
-  saveConfig,
 }) => {
   const handleToggle = () => {
     toggleTheme();
-    const newIsDarkMode = !isDarkMode;
-    setIsDarkMode(newIsDarkMode);
-    saveConfig({ isDarkMode: newIsDarkMode });
+    setIsDarkMode(!isDarkMode);
   };
 
   return (

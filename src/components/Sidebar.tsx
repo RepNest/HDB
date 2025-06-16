@@ -76,7 +76,7 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isOpen: propIsOpen, toggle, navColor, handleNewTab, handleQueryViewer }) => {
   const [apps, setApps] = useState<AppConfig[]>([]);
   const [visibleAppsIndices, setVisibleAppsIndices] = useState<string[]>([]);
-  const [favorites, setFavorites] = useState<Favorites>({});
+  const [favorites, setFavorites] = useState<Favorites>(defaultConfig.favorites);
   const [itdToolsButtons, setITDToolsButtons] = useState<ITDButton[]>(itdButtons);
   const [visibleITDButtons, setVisibleITDButtons] = useState<string[]>(itdButtons.map(b => b.id));
   const [isEditMode, setIsEditMode] = useState(false);
@@ -117,7 +117,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen: propIsOpen, toggle, navColor,
           setApps(defaultConfig.apps);
           setVisibleAppsIndices(defaultConfig.itdTools.visibleApps);
         }
-        setFavorites(config.favorites || {});
+        setFavorites(config.favorites || defaultConfig.favorites);
         if (config.itdTools.buttonOrder) {
           const visibleButtons = config.itdTools.visibleITDButtons || itdButtons.filter(b => b.id !== 'goToCitrixManager').map(b => b.id);
           const orderedButtons = config.itdTools.buttonOrder
@@ -235,7 +235,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen: propIsOpen, toggle, navColor,
     showNeonHue,
     navColor,
     neonShadow,
-  }); // Debug render
+  });
 
   return (
     <div

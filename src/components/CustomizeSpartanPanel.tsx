@@ -2,32 +2,28 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import ThemeToggle from './ThemeToggle.tsx';
-import { Config, ITDTools } from '../types';
+import { Config } from '../types';
 
 interface CustomizeSpartanPanelProps {
   isOpen: boolean;
   toggle: () => void;
-  navColor: string;
-  setNavColor: (color: string) => void;
-  saveConfig: (config: Config) => Promise<void>;
+  config: Config;
+  setConfig: React.Dispatch<React.SetStateAction<Config>>;
 }
 
 const CustomizeSpartanPanel: React.FC<CustomizeSpartanPanelProps> = ({
   isOpen,
   toggle,
-  navColor,
-  setNavColor,
-  saveConfig,
+  config,
+  setConfig,
 }) => {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     const initialTheme = savedTheme ? (savedTheme as 'light' | 'dark') : prefersDark ? 'dark' : 'light';
     setTheme(initialTheme);
-    setIsDarkMode(initialTheme === 'dark');
     if (initialTheme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
@@ -38,31 +34,27 @@ const CustomizeSpartanPanel: React.FC<CustomizeSpartanPanelProps> = ({
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
-    setIsDarkMode(newTheme === 'dark');
     localStorage.setItem('theme', newTheme);
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    handleSaveConfig({ isDarkMode: newTheme === 'dark' });
-  };
-
-  const handleSaveConfig = async (updates: Partial<ITDTools>) => {
-    const currentConfig = await window.electronAPI.getConfig();
-    const updatedConfig: Config = {
-      ...currentConfig,
-      itdTools: {
-        ...currentConfig.itdTools,
-        ...updates,
-      },
-    };
-    await saveConfig(updatedConfig);
+    setConfig(prev => {
+      const newConfig = {
+        ...prev,
+        itdTools: { ...prev.itdTools, isDarkMode: newTheme === 'dark' },
+      };
+      window.electronAPI.saveConfig(newConfig);
+      document.documentElement.classList.toggle('dark', newTheme === 'dark');
+      return newConfig;
+    });
   };
 
   const handleColorChange = (color: string) => {
-    setNavColor(color);
-    handleSaveConfig({ navBackgroundColor: color });
+    setConfig(prev => {
+      const newConfig = {
+        ...prev,
+        itdTools: { ...prev.itdTools, navBackgroundColor: color },
+      };
+      window.electronAPI.saveConfig(newConfig);
+      return newConfig;
+    });
   };
 
   const colors = ['purple', 'red', 'orange', 'green', 'yellow', 'blue', 'pink'];
@@ -89,9 +81,19 @@ const CustomizeSpartanPanel: React.FC<CustomizeSpartanPanelProps> = ({
             <ThemeToggle
               theme={theme}
               toggleTheme={toggleTheme}
-              isDarkMode={isDarkMode}
-              setIsDarkMode={setIsDarkMode}
-              saveConfig={handleSaveConfig}
+              isDarkMode={config.itdTools.isDarkMode ?? true}
+              setIsDarkMode={(isDark) => {
+                setConfig(prev => {
+                  const newConfig = {
+                    ...prev,
+                    itdTools: { ...prev.itdTools, isDarkMode: isDark },
+                  };
+                  window.electronAPI.saveConfig(newConfig);
+                  document.documentElement.classList.toggle('dark', isDark);
+                  return newConfig;
+                });
+              }}
+              saveConfig={async () => {}}
             />
           </div>
 
@@ -104,7 +106,7 @@ const CustomizeSpartanPanel: React.FC<CustomizeSpartanPanelProps> = ({
                   onClick={() => handleColorChange(color)}
                   className={clsx(
                     `w-8 h-8 rounded-full bg-${color}-500`,
-                    navColor === color && 'ring-2 ring-offset-2 ring-gray-900 dark:ring-gray-100'
+                    config.itdTools.navBackgroundColor === color && 'ring-2 ring-offset-2 ring-gray-900 dark:ring-gray-100'
                   )}
                   title={color.charAt(0).toUpperCase() + color.slice(1)}
                 />

@@ -144,7 +144,7 @@ export interface ThemeToggleProps {
   theme: 'light' | 'dark';
   toggleTheme: () => void;
   isDarkMode: boolean;
-  setIsDarkMode: React.Dispatch<React.SetStateAction<boolean>>;
+  setIsDarkMode: (isDark: boolean) => void;
   saveConfig: (updates: Partial<ITDTools>) => Promise<void>;
 }
 

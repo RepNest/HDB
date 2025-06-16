@@ -11,8 +11,23 @@ const App: React.FC = () => {
   const [tabs, setTabs] = useState<Tab[]>([{ id: Date.now(), title: 'New Tab', url: 'https://www.google.com' }]);
   const [activeTabId, setActiveTabId] = useState(tabs[0].id);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [navColor, setNavColor] = useState('purple');
-  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [config, setConfig] = useState<Config>({
+    sidebarCollapsed: false,
+    apps: [],
+    favorites: {},
+    itdTools: {
+      appsOrder: [],
+      visibleApps: [],
+      buttonOrder: [],
+      visibleITDButtons: [],
+      isEditMode: false,
+      navBackgroundColor: 'purple',
+      isDarkMode: true,
+      buttonSize: 'medium',
+    },
+    history: [],
+    createdAt: new Date().toISOString(),
+  });
   const [zoomLevel, setZoomLevel] = useState(1);
   const webviews = useRef<{ [key: number]: ElectronWebview | null }>({});
   const baseWidth = 1920;
@@ -20,10 +35,9 @@ const App: React.FC = () => {
   useEffect(() => {
     const loadConfig = async () => {
       try {
-        const config: Config = await window.electronAPI.getConfig();
-        setNavColor(config.itdTools.navBackgroundColor || 'purple');
-        setIsDarkMode(config.itdTools.isDarkMode ?? true);
-        document.documentElement.classList.toggle('dark', config.itdTools.isDarkMode ?? true);
+        const loadedConfig: Config = await window.electronAPI.getConfig();
+        setConfig(loadedConfig);
+        document.documentElement.classList.toggle('dark', loadedConfig.itdTools.isDarkMode ?? true);
       } catch (err) {
         console.error('Failed to load config:', err);
       }
@@ -106,8 +120,8 @@ const App: React.FC = () => {
         onTabClick={handleTabClick}
         onCloseTab={handleCloseTab}
         onNewTab={() => handleNewTab('https://www.google.com')}
-        navColor={navColor}
-        isDarkMode={isDarkMode}
+        navColor={config.itdTools.navBackgroundColor || 'purple'}
+        isDarkMode={config.itdTools.isDarkMode ?? true}
       />
       <div className="flex flex-col w-full mt-1" style={{ flexGrow: 0 }}>
         <Navbar
@@ -122,7 +136,9 @@ const App: React.FC = () => {
           onNewWindow={() => window.electronAPI.ipc.send('new-window')}
           onNewPrivateWindow={() => window.electronAPI.ipc.send('new-private-window')}
           zoom={Math.min(window.innerWidth / baseWidth, 1)}
-          navColor={navColor}
+          navColor={config.itdTools.navBackgroundColor || 'purple'}
+          config={config}
+          setConfig={setConfig}
         />
         <FavoritesBar
           favorites={{
@@ -136,15 +152,15 @@ const App: React.FC = () => {
             ],
           }}
           onNavigate={handleNavigate}
-          navColor={navColor}
-          isDarkMode={isDarkMode}
+          navColor={config.itdTools.navBackgroundColor || 'purple'}
+          isDarkMode={config.itdTools.isDarkMode ?? true}
         />
       </div>
       <div className="flex flex-1 overflow-auto" style={{ minHeight: 0 }}>
         <Sidebar
           isOpen={sidebarOpen}
           toggle={() => setSidebarOpen(!sidebarOpen)}
-          navColor={navColor}
+          navColor={config.itdTools.navBackgroundColor || 'purple'}
           handleNewTab={handleNewTab}
           handleQueryViewer={handleQueryViewer}
         />

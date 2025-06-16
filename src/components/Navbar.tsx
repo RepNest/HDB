@@ -347,7 +347,7 @@ const Navbar: React.FC<NavbarProps> = ({
               ref={starButtonRef}
               onClick={() => setPopupOpen(!popupOpen)}
               className={clsx(
-                'absolute right-2 top-1/2 transform -translate-y-1/2 text-xl',
+                'absolute right-3 top-1/2 transform -translate-y-1/2 text-xl transition-all duration-200',
                 isDarkMode ? 'text-yellow-400 hover:text-yellow-300' : 'text-yellow-600 hover:text-yellow-500'
               )}
               title="Save as Favorite"

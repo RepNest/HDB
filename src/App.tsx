@@ -6,7 +6,7 @@ import FavoritesBar from './components/FavoritesBar';
 import WebviewComponent from './components/WebviewComponent';
 import CustomizeSpartanPanel from './components/CustomizeSpartanPanel';
 import clsx from 'clsx';
-import { Config, Tab, ElectronWebview } from './types';
+import { Config, Tab, ElectronWebview, ITDTools } from './types';
 
 const App: React.FC = () => {
   const [tabs, setTabs] = useState<Tab[]>([{ id: Date.now(), title: 'New Tab', url: 'https://www.google.com' }]);
@@ -31,6 +31,7 @@ const App: React.FC = () => {
     history: [],
     createdAt: new Date().toISOString(),
   });
+  const [previewConfig, setPreviewConfig] = useState<ITDTools | null>(null); // Added for live preview
   const [zoomLevel, setZoomLevel] = useState(1);
   const webviews = useRef<{ [key: number]: ElectronWebview | null }>({});
   const baseWidth = 1920;
@@ -56,7 +57,13 @@ const App: React.FC = () => {
     loadConfig();
   }, []);
 
-  const memoizedFavorites = useMemo(() => config.favorites, [config.favorites]);
+  // Merge config and previewConfig for rendering
+  const effectiveConfig = useMemo(() => ({
+    ...config,
+    itdTools: { ...config.itdTools, ...(previewConfig || {}) },
+  }), [config, previewConfig]);
+
+  const memoizedFavorites = useMemo(() => effectiveConfig.favorites, [effectiveConfig.favorites]);
   const pinnedTabs = useMemo(() => tabs.filter((tab) => tab.pinned), [tabs]);
 
   const handleNewTab = useCallback((url: string) => {
@@ -189,10 +196,10 @@ const App: React.FC = () => {
         onReorderTabs={handleReorderTabs}
         onPinTab={handlePinTab}
         onReplaceTab={handleReplaceTab}
-        navColor={config.itdTools.navBackgroundColor || 'purple'}
-        isDarkMode={config.itdTools.isDarkMode ?? true}
-        tabBorderWidth={config.itdTools.tabBorderWidth}
-        highContrast={config.itdTools.highContrast}
+        navColor={effectiveConfig.itdTools.navBackgroundColor || 'purple'}
+        isDarkMode={effectiveConfig.itdTools.isDarkMode ?? true}
+        tabBorderWidth={effectiveConfig.itdTools.tabBorderWidth}
+        highContrast={effectiveConfig.itdTools.highContrast}
       />
       <div className="flex flex-col w-full mt-[0.5px]" style={{ flexGrow: 0 }}>
         <Navbar
@@ -207,8 +214,8 @@ const App: React.FC = () => {
           onNewWindow={() => window.electronAPI.ipc.send('new-window')}
           onNewPrivateWindow={() => window.electronAPI.ipc.send('new-private-window')}
           zoom={Math.min(window.innerWidth / baseWidth, 1)}
-          navColor={config.itdTools.navBackgroundColor || 'purple'}
-          config={config}
+          navColor={effectiveConfig.itdTools.navBackgroundColor || 'purple'}
+          config={effectiveConfig}
           setConfig={setConfig}
           setCustomizeOpen={setCustomizeOpen}
           pinnedTabs={pinnedTabs}
@@ -217,9 +224,9 @@ const App: React.FC = () => {
           className="translate-y-[1px]"
           favorites={memoizedFavorites}
           onNavigate={handleNavigate}
-          navColor={config.itdTools.navBackgroundColor || 'purple'}
-          isDarkMode={config.itdTools.isDarkMode ?? true}
-          config={config}
+          navColor={effectiveConfig.itdTools.navBackgroundColor || 'purple'}
+          isDarkMode={effectiveConfig.itdTools.isDarkMode ?? true}
+          config={effectiveConfig}
           setConfig={setConfig}
           currentUrl={tabs.find((tab) => tab.id === activeTabId)?.url || ''}
         />
@@ -228,7 +235,7 @@ const App: React.FC = () => {
         <Sidebar
           isOpen={sidebarOpen}
           toggle={() => setSidebarOpen(!sidebarOpen)}
-          navColor={config.itdTools.navBackgroundColor || 'purple'}
+          navColor={effectiveConfig.itdTools.navBackgroundColor || 'purple'}
           handleNewTab={handleNewTab}
           handleQueryViewer={handleQueryViewer}
         />

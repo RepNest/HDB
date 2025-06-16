@@ -37,11 +37,14 @@ const Navbar: React.FC<NavbarProps> = ({
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [localNavColor, setLocalNavColor] = useState(navColor);
+  const [popupOpen, setPopupOpen] = useState(false);
   const addressInput = useRef<HTMLInputElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const customizeButtonRef = useRef<HTMLButtonElement>(null);
+  const starButtonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const customizeRef = useRef<HTMLDivElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let root = document.getElementById('customize-spartan-root');
@@ -90,6 +93,14 @@ const Navbar: React.FC<NavbarProps> = ({
         !customizeButtonRef.current.contains(e.target as Node)
       ) {
         setCustomizeOpen(false);
+      }
+      if (
+        popupRef.current &&
+        !popupRef.current.contains(e.target as Node) &&
+        starButtonRef.current &&
+        !starButtonRef.current.contains(e.target as Node)
+      ) {
+        setPopupOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -318,19 +329,60 @@ const Navbar: React.FC<NavbarProps> = ({
             <ArrowPathIcon className="w-5 h-5" />
           </button>
         </div>
-        <div className="flex-1 flex justify-center min-w-0">
-          <input
-            ref={addressInput}
-            defaultValue={url}
-            onKeyDown={handleEnter}
-            className={clsx(
-              'max-w-6xl mx-auto w-full px-4 py-2 text-base rounded-full border shadow-sm focus:outline-none focus:ring-2',
-              isDarkMode
-                ? `bg-gray-800 border-gray-700 text-white placeholder-gray-300 focus:ring-${navColor}-300`
-                : `bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-${navColor}-500`
-            )}
-            placeholder="Enter URL..."
-          />
+        <div className="flex-1 flex justify-center min-w-0 relative">
+          <div className="relative w-full max-w-6xl">
+            <input
+              ref={addressInput}
+              defaultValue={url}
+              onKeyDown={handleEnter}
+              className={clsx(
+                'w-full px-4 py-2 pr-10 text-base rounded-full border shadow-sm focus:outline-none focus:ring-2',
+                isDarkMode
+                  ? `bg-gray-800 border-gray-700 text-white placeholder-gray-300 focus:ring-${navColor}-300`
+                  : `bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-${navColor}-500`
+              )}
+              placeholder="Enter URL..."
+            />
+            <button
+              ref={starButtonRef}
+              onClick={() => setPopupOpen(!popupOpen)}
+              className={clsx(
+                'absolute right-2 top-1/2 transform -translate-y-1/2 text-xl',
+                isDarkMode ? 'text-yellow-400 hover:text-yellow-300' : 'text-yellow-600 hover:text-yellow-500'
+              )}
+              title="Save as Favorite"
+            >
+              ⭐
+            </button>
+            <AnimatePresence>
+              {popupOpen && (
+                <motion.div
+                  ref={popupRef}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className={clsx(
+                    'absolute border rounded-lg shadow-md p-4 z-[1000]',
+                    isDarkMode
+                      ? 'bg-neutral-900 border-gray-700 text-white'
+                      : 'bg-gray-100 border-gray-300 text-gray-900'
+                  )}
+                  style={{
+                    top: 'calc(100% + 4px)',
+                    right:
+                      addressInput.current && starButtonRef.current
+                        ? addressInput.current.offsetWidth - starButtonRef.current.offsetLeft - starButtonRef.current.offsetWidth
+                        : 0,
+                    minWidth: '200px',
+                  }}
+                >
+                  <p>Bookmark this page</p>
+                  {/* Placeholder content for the pop-up */}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
         <div className="flex items-center gap-1 ml-auto mr-6">
           <div className="flex items-center gap-1">

@@ -205,8 +205,8 @@ const SidebarButtons: React.FC<SidebarButtonsProps> = ({
     <>
       <div
         className={clsx(
-          'flex items-center justify-between text-sm mb-1',
-          isOpen ? 'pl-2' : '',
+          'flex items-center justify-between text-base mb-2',
+          isOpen ? 'pl-3' : '',
           isDarkMode ? 'text-gray-400' : 'text-gray-600'
         )}
       >
@@ -226,7 +226,7 @@ const SidebarButtons: React.FC<SidebarButtonsProps> = ({
               );
             }}
             className={clsx(
-              'text-lg',
+              'text-xl',
               isDarkMode ? 'text-white hover:text-purple-600' : 'text-gray-900 hover:text-purple-500'
             )}
             title={isEditMode ? 'Exit Edit Mode' : 'Enter Edit Mode'}
@@ -251,35 +251,36 @@ const SidebarButtons: React.FC<SidebarButtonsProps> = ({
             onDrop={(e) => handleDrop(e, 'apps', idx)}
             onDragEnd={handleDragEnd}
             className={clsx(
-              'my-1 rounded-xl flex items-center',
+              'my-2 rounded-xl flex items-center',
               isEditMode && isOpen && 'shake cursor-move'
             )}
           >
             <button
               onClick={() => launchApp(app.command)}
               className={clsx(
-                'flex-1 py-2 px-2 rounded-xl transition-all flex items-center text-white',
-                isOpen ? 'justify-start' : 'justify-center h-10',
+                'flex-1 py-3 px-3 rounded-xl transition-all flex items-center text-white',
+                isOpen ? 'justify-start' : 'justify-center h-12',
                 isEditMode && 'cursor-move',
                 buttonSize === 'small' && 'text-sm',
                 buttonSize === 'medium' && 'text-base',
                 buttonSize === 'large' && 'text-lg',
+                buttonSize === 'xlarge' && 'text-xl',
                 `bg-${navColor}-700 dark:bg-${navColor}-200 hover:bg-${navColor}-800 dark:hover:bg-${navColor}-400`
               )}
               title={app.name}
               disabled={isEditMode}
             >
               {app.iconPath ? (
-                <img src={app.iconPath} alt={app.name} className="w-5 h-5 mr-2" />
+                <img src={app.iconPath} alt={app.name} className="w-6 h-6 mr-3" />
               ) : (
                 <span className="font-bold">{app.icon || app.name[0]}</span>
               )}
-              {isOpen && <span className="ml-2 truncate">{app.name}</span>}
+              {isOpen && <span className="ml-3 truncate">{app.name}</span>}
             </button>
             {isEditMode && isOpen && (
               <button
                 onClick={() => handleHideApp(index)}
-                className="ml-2 w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center hover:bg-red-600"
+                className="ml-3 w-6 h-6 bg-red-500 rounded-full text-white text-sm flex items-center justify-center hover:bg-red-600"
                 title="Hide this app"
               >
                 X
@@ -289,18 +290,18 @@ const SidebarButtons: React.FC<SidebarButtonsProps> = ({
         );
       })}
       {isEditMode && isOpen && apps.length > visibleAppsIndices.length && (
-        <div className="mt-2">
+        <div className="mt-3">
           {apps.map((app, idx) => {
             const indexStr = idx.toString();
             if (visibleAppsIndices.includes(indexStr)) return null;
             return (
-              <div key={indexStr} className="flex items-center my-1">
-                <span className={clsx('flex-1 text-sm pl-2 truncate', isDarkMode ? 'text-white' : 'text-gray-900')}>
+              <div key={indexStr} className="flex items-center my-2">
+                <span className={clsx('flex-1 text-base pl-3 truncate', isDarkMode ? 'text-white' : 'text-gray-900')}>
                   {app.name}
                 </span>
                 <button
                   onClick={() => handleUnhideApp(indexStr)}
-                  className="w-5 h-5 bg-green-500 rounded-full text-white text-xs flex items-center justify-center hover:bg-green-600"
+                  className="w-6 h-6 bg-green-500 rounded-full text-white text-sm flex items-center justify-center hover:bg-green-600"
                   title="Unhide this app"
                 >
                   +
@@ -313,8 +314,8 @@ const SidebarButtons: React.FC<SidebarButtonsProps> = ({
 
       <div
         className={clsx(
-          'text-sm mt-4 mb-1',
-          isOpen ? 'pl-2' : '',
+          'text-base mt-6 mb-2',
+          isOpen ? 'pl-3' : '',
           isDarkMode ? 'text-gray-400' : 'text-gray-600'
         )}
       >
@@ -330,7 +331,7 @@ const SidebarButtons: React.FC<SidebarButtonsProps> = ({
           onDrop={(e) => handleDrop(e, 'itdTools', idx)}
           onDragEnd={handleDragEnd}
           className={clsx(
-            'my-1 rounded-xl flex items-center flex-col',
+            'my-2 rounded-xl flex items-center flex-col',
             isEditMode && isOpen && 'shake cursor-move'
           )}
         >
@@ -338,21 +339,22 @@ const SidebarButtons: React.FC<SidebarButtonsProps> = ({
             <button
               onClick={() => handleITDButtonClick(button)}
               className={clsx(
-                'flex-1 py-2 px-2 rounded-xl transition-all flex items-center text-white',
-                isOpen ? 'justify-start' : 'justify-center h-10',
+                'flex-1 py-3 px-3 rounded-xl transition-all flex items-center text-white',
+                isOpen ? 'justify-start' : 'justify-center h-12',
                 isEditMode && 'cursor-move',
                 buttonSize === 'small' && 'text-sm',
                 buttonSize === 'medium' && 'text-base',
                 buttonSize === 'large' && 'text-lg',
+                buttonSize === 'xlarge' && 'text-xl',
                 `bg-${navColor}-700 dark:bg-${navColor}-200 hover:bg-${navColor}-800 dark:hover:bg-${navColor}-400`
               )}
               title={button.text}
               disabled={isEditMode}
             >
               <span className="font-bold">{button.text[0]}</span>
-              {isOpen && <span className="ml-2 truncate">{button.text}</span>}
+              {isOpen && <span className="ml-3 truncate">{button.text}</span>}
               {button.submenu && isOpen && (
-                <span className="ml-2">
+                <span className="ml-3">
                   {activeDropdown === button.id ? '▲' : '▼'}
                 </span>
               )}
@@ -360,7 +362,7 @@ const SidebarButtons: React.FC<SidebarButtonsProps> = ({
             {isEditMode && isOpen && (
               <button
                 onClick={() => handleHideITDButton(button.id)}
-                className="ml-2 w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center hover:bg-red-600"
+                className="ml-3 w-6 h-6 bg-red-500 rounded-full text-white text-sm flex items-center justify-center hover:bg-red-600"
                 title="Hide this button"
               >
                 X
@@ -368,13 +370,13 @@ const SidebarButtons: React.FC<SidebarButtonsProps> = ({
             )}
           </div>
           {(button.id === 'goToNSD' || button.id === 'goToEAMS') && activeDropdown === button.id && button.submenu && isOpen && !isEditMode && (
-            <div className="w-full mt-1">
+            <div className="w-full mt-2">
               {button.submenu.map(subItem => (
                 <button
                   key={subItem.id}
                   onClick={() => handleSubmenuClick(subItem)}
                   className={clsx(
-                    'block w-full text-left py-1 px-2 rounded text-sm',
+                    'block w-full text-left py-2 px-3 rounded text-base',
                     isDarkMode ? 'bg-gray-900 hover:bg-purple-600 text-white' : 'bg-gray-300 hover:bg-purple-500 text-gray-900'
                   )}
                 >
@@ -386,7 +388,7 @@ const SidebarButtons: React.FC<SidebarButtonsProps> = ({
           {activeInputMenu === 'active-directory-search' && button.id === 'goToNSD' && isOpen && !isEditMode && (
             <div
               className={clsx(
-                'w-full mt-1 rounded p-2',
+                'w-full mt-2 rounded p-3',
                 isDarkMode ? 'bg-gray-900' : 'bg-gray-300'
               )}
             >
@@ -397,15 +399,15 @@ const SidebarButtons: React.FC<SidebarButtonsProps> = ({
                 onChange={(e) => setUserId(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleInputSubmit()}
                 className={clsx(
-                  'w-full px-2 py-1 rounded text-sm',
+                  'w-full px-3 py-2 rounded text-base',
                   isDarkMode ? 'bg-gray-800 text-white' : 'bg-gray-200 text-gray-900'
                 )}
                 autoFocus
               />
-              <div className="flex space-x-2 mt-2">
+              <div className="flex space-x-3 mt-3">
                 <button
                   onClick={handleInputSubmit}
-                  className="px-2 py-1 bg-purple-600 rounded text-sm text-white hover:bg-purple-500"
+                  className="px-3 py-2 bg-purple-600 rounded text-base text-white hover:bg-purple-500"
                 >
                   Submit
                 </button>
@@ -415,7 +417,7 @@ const SidebarButtons: React.FC<SidebarButtonsProps> = ({
                     setUserId('');
                   }}
                   className={clsx(
-                    'px-2 py-1 rounded text-sm',
+                    'px-3 py-2 rounded text-base',
                     isDarkMode ? 'bg-gray-600 text-white hover:bg-gray-500' : 'bg-gray-400 text-gray-900 hover:bg-gray-300'
                   )}
                 >
@@ -425,13 +427,13 @@ const SidebarButtons: React.FC<SidebarButtonsProps> = ({
             </div>
           )}
           {!(button.id === 'goToNSD' || button.id === 'goToEAMS') && activeDropdown === button.id && button.submenu && isOpen && !isEditMode && (
-            <div className="ml-4 mt-1">
+            <div className="ml-4 mt-2">
               {button.submenu.map(subItem => (
                 <button
                   key={subItem.id}
                   onClick={() => handleSubmenuClick(subItem)}
                   className={clsx(
-                    'block w-full text-left py-1 px-2 rounded text-sm',
+                    'block w-full text-left py-2 px-3 rounded text-base',
                     isDarkMode ? 'bg-gray-900 hover:bg-purple-600 text-white' : 'bg-gray-300 hover:bg-purple-500 text-gray-900'
                   )}
                 >
@@ -443,17 +445,17 @@ const SidebarButtons: React.FC<SidebarButtonsProps> = ({
         </div>
       ))}
       {isEditMode && isOpen && itdButtons.length > visibleITDButtons.length && (
-        <div className="mt-2">
+        <div className="mt-3">
           {itdButtons.map(button => {
             if (visibleITDButtons.includes(button.id)) return null;
             return (
-              <div key={button.id} className="flex items-center my-1">
-                <span className={clsx('flex-1 text-sm pl-2 truncate', isDarkMode ? 'text-white' : 'text-gray-900')}>
+              <div key={button.id} className="flex items-center my-2">
+                <span className={clsx('flex-1 text-base pl-3 truncate', isDarkMode ? 'text-white' : 'text-gray-900')}>
                   {button.text}
                 </span>
                 <button
                   onClick={() => handleUnhideITDButton(button.id)}
-                  className="w-5 h-5 bg-green-500 rounded-full text-white text-xs flex items-center justify-center hover:bg-green-600"
+                  className="w-6 h-6 bg-green-500 rounded-full text-white text-sm flex items-center justify-center hover:bg-green-600"
                   title="Unhide this button"
                 >
                   +

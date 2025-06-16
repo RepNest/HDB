@@ -68,7 +68,7 @@ const CustomizeSpartanPanel: React.FC<CustomizeSpartanPanelProps> = ({
           exit={{ x: '100%' }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           className={clsx(
-            'fixed top-[120px] right-0 h-[70vh] w-64 bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white p-4 sidebar-scroll z-50 shadow-lg'
+            'fixed top-[160px] right-0 h-[70vh] w-64 bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white p-4 sidebar-scroll z-50 shadow-lg'
           )}
         >
           <div className="flex justify-between items-center mb-3">

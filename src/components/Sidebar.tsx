@@ -58,7 +58,7 @@ const defaultConfig: Config = {
     isEditMode: false,
     navBackgroundColor: 'purple',
     isDarkMode: true,
-    buttonSize: 'medium',
+    buttonSize: 'xlarge',
   },
   sidebarCollapsed: false,
   history: [],
@@ -81,20 +81,19 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen: propIsOpen, toggle, navColor,
   const [visibleITDButtons, setVisibleITDButtons] = useState<string[]>(itdButtons.map(b => b.id));
   const [isEditMode, setIsEditMode] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
-  const [buttonSize, setButtonSize] = useState<'small' | 'medium' | 'large'>('medium');
+  const [buttonSize, setButtonSize] = useState<'small' | 'medium' | 'large' | 'xlarge'>('xlarge');
   const [isOpen, setIsOpen] = useState(propIsOpen);
   const [showNeonHue, setShowNeonHue] = useState(false);
   const minimizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Map navColor to RGB values for box-shadow
   const colorMap: Record<string, string> = {
-    purple: '168, 85, 247', // purple-500
-    red: '239, 68, 68', // red-500
-    orange: '249, 115, 22', // orange-500
-    green: '34, 197, 94', // green-500
-    yellow: '234, 179, 8', // yellow-500
-    blue: '59, 130, 246', // blue-500
-    pink: '236, 72, 153', // pink-500
+    purple: '168, 85, 247',
+    red: '239, 68, 68',
+    orange: '249, 115, 22',
+    green: '34, 197, 94',
+    yellow: '234, 179, 8',
+    blue: '59, 130, 246',
+    pink: '236, 72, 153',
   };
 
   const neonShadow = showNeonHue
@@ -128,7 +127,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen: propIsOpen, toggle, navColor,
         }
         setIsEditMode(config.itdTools.isEditMode || false);
         setIsDarkMode(config.itdTools.isDarkMode !== false);
-        setButtonSize(config.itdTools.buttonSize || 'medium');
+        setButtonSize(config.itdTools.buttonSize || 'xlarge');
         setIsOpen(!config.sidebarCollapsed);
       } catch (err) {
         console.error('Failed to load config:', err);
@@ -148,7 +147,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen: propIsOpen, toggle, navColor,
     newButtonOrder: string[],
     newVisibleITDButtons: string[],
     newEditMode: boolean,
-    newButtonSize: 'small' | 'medium' | 'large',
+    newButtonSize: 'small' | 'medium' | 'large' | 'xlarge',
     newSidebarCollapsed: boolean
   ) => {
     const currentConfig = await window.electronAPI.getConfig();
@@ -242,24 +241,24 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen: propIsOpen, toggle, navColor,
       className={clsx(
         'h-full flex flex-col sidebar-scroll sidebar-container',
         `bg-${navColor}-600 dark:bg-${navColor}-300`,
-        isOpen ? 'w-64' : 'w-16'
+        isOpen ? 'w-80' : 'w-20'
       )}
       style={{ boxShadow: neonShadow, transition: 'width 0.3s ease-in-out, box-shadow 0.2s ease-in-out' }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <div className="py-4 px-2 toggle-button-container">
+      <div className="py-6 px-3 toggle-button-container">
         <button
           onClick={handleToggle}
           className={clsx(
-            'mb-4 text-white hover:text-purple-600 self-center',
+            'mb-6 text-2xl hover:text-purple-600 self-center',
             isDarkMode ? 'text-white' : 'text-gray-900'
           )}
         >
           ☰
         </button>
       </div>
-      <div className="flex-1 overflow-y-auto sidebar-scroll px-2">
+      <div className="flex-1 overflow-y-auto sidebar-scroll px-3">
         <SidebarButtons
           apps={apps}
           visibleAppsIndices={visibleAppsIndices}

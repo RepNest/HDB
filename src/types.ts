@@ -36,7 +36,7 @@ export interface ITDTools {
   navBackgroundColor?: string;
   buttonBackgroundColor?: string;
   isDarkMode: boolean;
-  buttonSize: 'small' | 'medium' | 'large';
+  buttonSize: 'small' | 'medium' | 'large' | 'xlarge';
 }
 
 export interface Config {
@@ -120,7 +120,7 @@ export interface SidebarButtonsProps {
   visibleITDButtons: string[];
   isEditMode: boolean;
   isDarkMode: boolean;
-  buttonSize: 'small' | 'medium' | 'large';
+  buttonSize: 'small' | 'medium' | 'large' | 'xlarge';
   isOpen: boolean;
   navColor: string;
   handleNewTab: (url: string) => void;
@@ -131,7 +131,7 @@ export interface SidebarButtonsProps {
     newButtonOrder: string[],
     newVisibleITDButtons: string[],
     newEditMode: boolean,
-    newButtonSize: 'small' | 'medium' | 'large'
+    newButtonSize: 'small' | 'medium' | 'large' | 'xlarge'
   ) => Promise<void>;
   launchApp: (cmd: string) => void;
   setVisibleAppsIndices: React.Dispatch<React.SetStateAction<string[]>>;

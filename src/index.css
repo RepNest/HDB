@@ -18,14 +18,14 @@
 
 /* Custom scrollbar for Sidebar and Customize Spartan panel */
 .sidebar-scroll::-webkit-scrollbar {
-  width: 8px;
+  width: 12px;
 }
 .sidebar-scroll::-webkit-scrollbar-track {
   background: #1a1a1a;
 }
 .sidebar-scroll::-webkit-scrollbar-thumb {
   background: #4b5563;
-  border-radius: 4px;
+  border-radius: 6px;
 }
 .sidebar-scroll::-webkit-scrollbar-thumb:hover {
   background: #6b7280;
@@ -50,5 +50,5 @@ html:not(.dark) .sidebar-scroll::-webkit-scrollbar-thumb:hover {
 
 /* Toggle button styling */
 .toggle-button-container {
-  margin-left: 16px; /* Shift toggle button to the right */
+  margin-left: 20px; /* Shift toggle button to the right */
 }

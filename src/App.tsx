@@ -109,7 +109,7 @@ const App: React.FC = () => {
         navColor={navColor}
         isDarkMode={isDarkMode}
       />
-      <div className="flex flex-col w-full" style={{ flexGrow: 0 }}>
+      <div className="flex flex-col w-full mt-1" style={{ flexGrow: 0 }}>
         <Navbar
           url={tabs.find(tab => tab.id === activeTabId)?.url || ''}
           webviewRef={webviews.current[activeTabId] || null}

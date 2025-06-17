@@ -6,6 +6,7 @@ import FavoritesBar from './components/FavoritesBar';
 import WebviewComponent from './components/WebviewComponent';
 import CustomizeSpartanPanel from './components/CustomizeSpartanPanel';
 import HistoryPage from './components/HistoryPage';
+import SettingsPage from './components/SettingsPage';
 import { ConfigProvider } from './components/ConfigContext';
 import clsx from 'clsx';
 import { Tab, ElectronWebview } from './types';
@@ -24,7 +25,7 @@ const App: React.FC = () => {
 
   const handleNewTab = useCallback((url: string) => {
     const newId = Date.now();
-    const title = url === 'spartan://history' ? 'History' : 'New Tab';
+    const title = url === 'spartan://history' ? 'History' : url === 'spartan://settings' ? 'Settings' : 'New Tab';
     setTabs((prev) => [...prev, { id: newId, title, url, isNew: true }]);
     setActiveTabId(newId);
   }, []);
@@ -77,7 +78,7 @@ const App: React.FC = () => {
 
   const handleNavigate = useCallback((url: string) => {
     const newId = Date.now();
-    const title = url === 'spartan://history' ? 'History' : 'Loading...';
+    const title = url === 'spartan://history' ? 'History' : url === 'spartan://settings' ? 'Settings' : 'Loading...';
     setTabs((prev) => [...prev, { id: newId, title, url, isNew: false }]);
     setActiveTabId(newId);
   }, []);
@@ -102,7 +103,9 @@ const App: React.FC = () => {
   const handleReplaceTab = useCallback((id: number, url: string) => {
     setTabs((prev) =>
       prev.map((tab) =>
-        tab.id === id ? { ...tab, url, title: url === 'spartan://history' ? 'History' : 'Loading...', isNew: false } : tab
+        tab.id === id
+          ? { ...tab, url, title: url === 'spartan://history' ? 'History' : url === 'spartan://settings' ? 'Settings' : 'Loading...', isNew: false }
+          : tab
       )
     );
   }, []);
@@ -193,16 +196,23 @@ const App: React.FC = () => {
             handleNewTab={handleNewTab}
             handleQueryViewer={handleQueryViewer}
           />
-          {tabs.find((tab) => tab.id === activeTabId)?.url === 'spartan://history' ? (
-            <HistoryPage onNavigate={handleNavigate} />
-          ) : (
-            <WebviewComponent
-              tabs={tabs}
-              activeTabId={activeTabId}
-              zoomLevel={zoomLevel}
-              setTabs={setTabs}
-            />
-          )}
+          {(() => {
+            const activeTabUrl = tabs.find((tab) => tab.id === activeTabId)?.url;
+            if (activeTabUrl === 'spartan://history') {
+              return <HistoryPage onNavigate={handleNavigate} />;
+            } else if (activeTabUrl === 'spartan://settings') {
+              return <SettingsPage pinnedTabs={pinnedTabs} />;
+            } else {
+              return (
+                <WebviewComponent
+                  tabs={tabs}
+                  activeTabId={activeTabId}
+                  zoomLevel={zoomLevel}
+                  setTabs={setTabs}
+                />
+              );
+            }
+          })()}
           <CustomizeSpartanPanel
             isOpen={customizeOpen}
             toggle={() => setCustomizeOpen(false)}

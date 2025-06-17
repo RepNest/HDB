@@ -40,6 +40,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
   const [renameFolder, setRenameFolder] = useState<{ folder: string; name: string } | null>(null);
   const [faviconCache, setFaviconCache] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -52,6 +53,14 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
       if (renameInputRef.current && !renameInputRef.current.contains(e.target as Node)) {
         setRenameFolder(null);
       }
+      if (
+        searchInputRef.current &&
+        !searchInputRef.current.contains(e.target as Node) &&
+        !(e.target as HTMLElement)?.classList?.contains('search-toggle')
+      ) {
+        setShowSearch(false);
+        setSearchQuery('');
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -62,6 +71,12 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
       renameInputRef.current?.focus();
     }
   }, [renameFolder]);
+
+  useEffect(() => {
+    if (showSearch) {
+      searchInputRef.current?.focus();
+    }
+  }, [showSearch]);
 
   const loadFavicon = async (url: string, folder: string, index: number): Promise<string> => {
     if (faviconCache[url]) return faviconCache[url];
@@ -239,18 +254,38 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
           className
         )}
       >
-        <input
-          ref={searchInputRef}
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+        <button
+          onClick={() => setShowSearch(!showSearch)}
           className={clsx(
-            'px-3 py-1 text-sm rounded border mr-2',
-            isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+            'search-toggle w-8 h-8 flex items-center justify-center rounded-full transition-all mr-2',
+            isDarkMode ? 'text-white hover:bg-gray-700' : 'text-gray-900 hover:bg-gray-100'
           )}
-          placeholder="Search bookmarks..."
-          aria-label="Search bookmarks"
-        />
+          title="Toggle bookmark search"
+          aria-label="Toggle bookmark search"
+          aria-expanded={showSearch}
+        >
+          🔍
+        </button>
+        <AnimatePresence>
+          {showSearch && (
+            <motion.input
+              ref={searchInputRef}
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 200, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className={clsx(
+                'px-3 py-1 text-sm rounded border mr-2',
+                isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+              )}
+              placeholder="Search bookmarks..."
+              aria-label="Search bookmarks"
+            />
+          )}
+        </AnimatePresence>
         {Object.entries(searchQuery ? filteredFavorites : config.favorites).map(([folder, items]) => (
           <div key={folder} className="relative">
             {renameFolder?.folder === folder ? (

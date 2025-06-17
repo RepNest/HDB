@@ -528,7 +528,7 @@ const Navbar: React.FC<NavbarProps> = ({
                   </button>
                   <button
                     onClick={() => {
-                      setLocalCustomizeOpen(true);
+                      onNewTab('spartan://settings');
                       setMenuOpen(false);
                     }}
                     className={clsx(
@@ -538,7 +538,7 @@ const Navbar: React.FC<NavbarProps> = ({
                         : 'bg-gray-100 text-gray-900 border-gray-300 hover:bg-gray-200'
                     )}
                     role="menuitem"
-                    aria-label="Open settings panel"
+                    aria-label="Open settings page"
                   >
                     Settings
                   </button>

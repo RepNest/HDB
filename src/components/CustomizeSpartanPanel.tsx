@@ -3,23 +3,23 @@ import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import { debounce } from 'lodash';
 import ThemeToggle from './ThemeToggle';
-import { Config, Tab, ITDTools } from '../types';
+import { Tab, ITDTools } from '../types';
+import { useConfig } from './ConfigContext';
+import { useErrorHandler } from '../hooks/useErrorHandler';
 
 interface CustomizeSpartanPanelProps {
   isOpen: boolean;
   toggle: () => void;
-  config: Config;
-  setConfig: React.Dispatch<React.SetStateAction<Config>>;
   pinnedTabs: Tab[];
 }
 
 const CustomizeSpartanPanel: React.FC<CustomizeSpartanPanelProps> = ({
   isOpen,
   toggle,
-  config,
-  setConfig,
   pinnedTabs,
 }) => {
+  const { config, setConfig } = useConfig();
+  const { error, handleError, clearError } = useErrorHandler();
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [previewConfig, setPreviewConfig] = useState<ITDTools>(config.itdTools);
 
@@ -35,9 +35,16 @@ const CustomizeSpartanPanel: React.FC<CustomizeSpartanPanelProps> = ({
     }
   }, []);
 
-  // Debounced config saving
-  const debouncedSaveConfig = debounce((newConfig: Config) => {
-    window.electronAPI.saveConfig(newConfig);
+  const debouncedSaveConfig = debounce(async (newConfig: ITDTools) => {
+    try {
+      const updatedConfig = { ...config, itdTools: newConfig };
+      const success = await window.electronAPI.saveConfig(updatedConfig);
+      if (!success) throw new Error('Failed to save config');
+      setConfig(updatedConfig);
+      clearError();
+    } catch (err: unknown) {
+      handleError(err, 'Error saving configuration');
+    }
   }, 300);
 
   const toggleTheme = () => {
@@ -64,26 +71,21 @@ const CustomizeSpartanPanel: React.FC<CustomizeSpartanPanelProps> = ({
   };
 
   const handleApply = () => {
-    setConfig((prev) => {
-      const newConfig = {
-        ...prev,
-        itdTools: previewConfig,
-      };
-      debouncedSaveConfig(newConfig);
-      document.documentElement.classList.toggle('dark', previewConfig.isDarkMode);
-      return newConfig;
-    });
+    debouncedSaveConfig(previewConfig);
+    document.documentElement.classList.toggle('dark', previewConfig.isDarkMode);
   };
 
-  const handleSavePinnedTabs = () => {
-    setConfig((prev) => {
-      const newConfig = {
-        ...prev,
-        pinnedTabs,
-      };
-      debouncedSaveConfig(newConfig);
-      return newConfig;
-    });
+  const handleSavePinnedTabs = async () => {
+    try {
+      const updatedConfig = { ...config, pinnedTabs };
+      const success = await window.electronAPI.saveConfig(updatedConfig);
+      if (!success) throw new Error('Failed to save pinned tabs');
+      setConfig(updatedConfig);
+      console.log(`Saved ${pinnedTabs.length} pinned tabs at ${new Date().toISOString()}`);
+      clearError();
+    } catch (err: unknown) {
+      handleError(err, 'Error saving pinned tabs');
+    }
   };
 
   const colors = ['purple', 'red', 'orange', 'green', 'yellow', 'blue', 'pink'];
@@ -290,6 +292,12 @@ const CustomizeSpartanPanel: React.FC<CustomizeSpartanPanelProps> = ({
             {pinnedTabs.length === 0 ? 'No pinned tabs to save' : `Saves ${pinnedTabs.length} pinned tab${pinnedTabs.length !== 1 ? 's' : ''} for next session`}
           </p>
         </div>
+
+        {error && (
+          <p className="text-red-500 text-xs mt-1" role="alert">
+            {error}
+          </p>
+        )}
 
         <motion.button
           onClick={handleApply}

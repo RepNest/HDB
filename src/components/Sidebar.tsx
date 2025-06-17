@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import clsx from 'clsx';
-import { Config, AppConfig, ITDButton, Favorites } from '../types';
-import SidebarButtons from './SidebarButtons.tsx';
+import { AppConfig, ITDButton, Favorites } from '../types';
+import SidebarButtons from './SidebarButtons';
+import { useConfig } from './ConfigContext';
 
 const itdButtons: ITDButton[] = [
   { 
@@ -92,41 +93,6 @@ const itdButtons: ITDButton[] = [
   },
 ];
 
-const defaultConfig: Config = {
-  apps: [
-    { name: 'Notepad', command: 'notepad.exe' },
-    { name: 'Calculator', command: 'calc.exe' },
-    { name: 'Active Directory', command: 'powershell.exe -ExecutionPolicy Bypass -File "C:\\Scripts\\ADUC_Launcher.ps1"', iconPath: './icons/objsel_106-4.png' },
-    { name: 'Mainframe', command: 'cmd /c "C:\\Program Files (x86)\\MochaSoft\\Mocha TN3270 for Vista\\tn3270.exe"', iconPath: './icons/tn3270_32512.ico' },
-    { name: 'Lockout Status Tool', command: 'cmd /c "C:\\Program Files (x86)\\Windows Resource Kits\\Tools\\lockoutstatus.exe"', iconPath: './icons/lockoutstatus_106.ico' },
-    { name: 'Teamviewer', command: '"C:\\Program Files\\TeamViewer\\TeamViewer.exe"', iconPath: './icons/TeamViewer_101.ico' },
-    { name: 'CmRC Viewer', command: 'powershell.exe -ExecutionPolicy Bypass -File "C:\\Scripts\\CMRC_Launcher.ps1"', iconPath: './icons/CmRCViewer_IDR_RCVIEWER.ico' },
-  ],
-  favorites: {
-    ' ': [{ name: 'Google', url: 'https://www.google.com', favicon: 'https://www.google.com/favicon.ico' }],
-    'Frequent Sites': [
-      { name: 'ITD Intra', url: 'https://miamidadecounty.sharepoint.com/sites/ITD-Intra', favicon: 'https://miamidadecounty.sharepoint.com/favicon.ico' },
-      { name: 'Outlook', url: 'https://outlook.office.com', favicon: 'https://outlook.office.com/favicon.ico' },
-      { name: 'Citrix Secure Sign In', url: 'https://xenapp.cloud.com', favicon: 'https://xenapp.cloud.com/favicon.ico' },
-      { name: 'Sign In - Webex', url: 'https://desktop.wxcc-us1.cisco.com/iframe-widget', favicon: 'https://desktop.wxcc-us1.cisco.com/favicon.ico' },
-      { name: 'IT Service Desk - Home', url: 'https://miamidadecounty.sharepoint.com/sites/ITServiceDesk', favicon: 'https://miamidadecounty.sharepoint.com/favicon.ico' },
-    ],
-  },
-  itdTools: {
-    buttonOrder: itdButtons.map(b => b.id),
-    visibleITDButtons: itdButtons.filter(b => b.id !== 'goToCitrixManager').map(b => b.id),
-    appsOrder: ['2', '3', '4', '5', '6'],
-    visibleApps: ['2', '3', '4', '5', '6'],
-    isEditMode: false,
-    navBackgroundColor: 'purple',
-    isDarkMode: true,
-    buttonSize: 'xlarge',
-  },
-  sidebarCollapsed: false,
-  history: [],
-  createdAt: '2025-01-01T00:00:00.000Z',
-};
-
 interface SidebarProps {
   isOpen: boolean;
   toggle: () => void;
@@ -136,14 +102,15 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen: propIsOpen, toggle, navColor, handleNewTab, handleQueryViewer }) => {
-  const [apps, setApps] = useState<AppConfig[]>([]);
-  const [visibleAppsIndices, setVisibleAppsIndices] = useState<string[]>([]);
-  const [favorites, setFavorites] = useState<Favorites>(defaultConfig.favorites);
+  const { config, setConfig } = useConfig();
+  const [apps, setApps] = useState<AppConfig[]>(config.apps);
+  const [visibleAppsIndices, setVisibleAppsIndices] = useState<string[]>(config.itdTools.visibleApps);
+  const [favorites, setFavorites] = useState<Favorites>(config.favorites);
   const [itdToolsButtons, setITDToolsButtons] = useState<ITDButton[]>(itdButtons);
-  const [visibleITDButtons, setVisibleITDButtons] = useState<string[]>(itdButtons.map(b => b.id));
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
-  const [buttonSize, setButtonSize] = useState<'small' | 'medium' | 'large' | 'xlarge'>('xlarge');
+  const [visibleITDButtons, setVisibleITDButtons] = useState<string[]>(config.itdTools.visibleITDButtons);
+  const [isEditMode, setIsEditMode] = useState(config.itdTools.isEditMode);
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(config.itdTools.isDarkMode);
+  const [buttonSize, setButtonSize] = useState<'small' | 'medium' | 'large' | 'xlarge'>(config.itdTools.buttonSize);
   const [isOpen, setIsOpen] = useState(propIsOpen);
   const [showNeonHue, setShowNeonHue] = useState(false);
   const minimizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -163,45 +130,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen: propIsOpen, toggle, navColor,
     : 'none';
 
   useEffect(() => {
-    const loadConfig = async () => {
-      try {
-        const config: Config = await window.electronAPI.getConfig();
-        console.log('Sidebar config loaded:', config);
-        if (config.apps.length) {
-          const appsOrder = config.itdTools.appsOrder || config.apps.map((_, i) => i.toString()).filter(i => !['0', '1'].includes(i));
-          const visibleApps = config.itdTools.visibleApps || config.apps.map((_, i) => i.toString()).filter(i => !['0', '1'].includes(i));
-          setApps(config.apps);
-          setVisibleAppsIndices(visibleApps);
-          console.log('Apps set:', config.apps, 'Visible indices:', visibleApps);
-        } else {
-          console.warn('No apps in config, using defaultConfig.apps');
-          setApps(defaultConfig.apps);
-          setVisibleAppsIndices(defaultConfig.itdTools.visibleApps);
-        }
-        setFavorites(config.favorites || defaultConfig.favorites);
-        if (config.itdTools.buttonOrder) {
-          const visibleButtons = config.itdTools.visibleITDButtons || itdButtons.filter(b => b.id !== 'goToCitrixManager').map(b => b.id);
-          const orderedButtons = config.itdTools.buttonOrder
-            .map(buttonId => itdButtons.find(b => b.id === buttonId))
-            .filter((b): b is ITDButton => !!b && visibleButtons.includes(b.id));
-          setITDToolsButtons(orderedButtons.length > 0 ? orderedButtons : itdButtons.filter(b => visibleButtons.includes(b.id)));
-          setVisibleITDButtons(visibleButtons);
-        }
-        setIsEditMode(config.itdTools.isEditMode || false);
-        setIsDarkMode(config.itdTools.isDarkMode !== false);
-        setButtonSize(config.itdTools.buttonSize || 'xlarge');
-        setIsOpen(!config.sidebarCollapsed);
-      } catch (err) {
-        console.error('Failed to load config:', err);
-        setApps(defaultConfig.apps);
-        setVisibleAppsIndices(defaultConfig.itdTools.visibleApps);
-        setFavorites(defaultConfig.favorites);
-        setITDToolsButtons(itdButtons.filter(b => b.id !== 'goToCitrixManager'));
-        setVisibleITDButtons(itdButtons.filter(b => b.id !== 'goToCitrixManager').map(b => b.id));
-      }
-    };
-    loadConfig();
-  }, []);
+    setApps(config.apps);
+    setVisibleAppsIndices(config.itdTools.visibleApps);
+    setFavorites(config.favorites);
+    setIsEditMode(config.itdTools.isEditMode);
+    setIsDarkMode(config.itdTools.isDarkMode);
+    setButtonSize(config.itdTools.buttonSize);
+    setIsOpen(!config.sidebarCollapsed);
+
+    const visibleButtons = config.itdTools.visibleITDButtons || itdButtons.filter(b => b.id !== 'goToCitrixManager').map(b => b.id);
+    const orderedButtons = config.itdTools.buttonOrder
+      .map(buttonId => itdButtons.find(b => b.id === buttonId))
+      .filter((b): b is ITDButton => !!b && visibleButtons.includes(b.id));
+    setITDToolsButtons(orderedButtons.length > 0 ? orderedButtons : itdButtons.filter(b => visibleButtons.includes(b.id)));
+    setVisibleITDButtons(visibleButtons);
+  }, [config]);
 
   const saveConfig = async (
     newAppsOrder: string[],
@@ -212,24 +155,30 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen: propIsOpen, toggle, navColor,
     newButtonSize: 'small' | 'medium' | 'large' | 'xlarge',
     newSidebarCollapsed: boolean
   ) => {
-    const currentConfig = await window.electronAPI.getConfig();
-    const updatedConfig: Config = {
-      ...currentConfig,
-      sidebarCollapsed: newSidebarCollapsed,
-      itdTools: {
-        ...currentConfig.itdTools,
-        appsOrder: newAppsOrder,
-        visibleApps: newVisibleApps,
-        buttonOrder: newButtonOrder,
-        visibleITDButtons: newVisibleITDButtons,
-        isEditMode: newEditMode,
-        navBackgroundColor: navColor,
-        isDarkMode: isDarkMode,
-        buttonSize: newButtonSize,
-      },
-    };
-    await window.electronAPI.saveConfig(updatedConfig);
-    console.log('Config saved with navColor:', navColor, 'sidebarCollapsed:', newSidebarCollapsed);
+    try {
+      const updatedConfig = {
+        ...config,
+        sidebarCollapsed: newSidebarCollapsed,
+        itdTools: {
+          ...config.itdTools,
+          appsOrder: newAppsOrder,
+          visibleApps: newVisibleApps,
+          buttonOrder: newButtonOrder,
+          visibleITDButtons: newVisibleITDButtons,
+          isEditMode: newEditMode,
+          navBackgroundColor: navColor,
+          isDarkMode: isDarkMode,
+          buttonSize: newButtonSize,
+        },
+      };
+      const success = await window.electronAPI.saveConfig(updatedConfig);
+      if (success) {
+        setConfig(updatedConfig);
+        console.log('Config saved with navColor:', navColor, 'sidebarCollapsed:', newSidebarCollapsed);
+      }
+    } catch (err) {
+      console.error('Failed to save config:', err);
+    }
   };
 
   const launchApp = (cmd: string) => {
@@ -248,7 +197,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen: propIsOpen, toggle, navColor,
     }
     setIsOpen(true);
     setShowNeonHue(true);
-    console.log('Mouse entered sidebar, showNeonHue:', true, 'navColor:', navColor);
     saveConfig(
       visibleAppsIndices,
       visibleAppsIndices,
@@ -264,7 +212,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen: propIsOpen, toggle, navColor,
     minimizeTimeoutRef.current = setTimeout(() => {
       setIsOpen(false);
       setShowNeonHue(false);
-      console.log('Mouse left sidebar, showNeonHue:', false, 'navColor:', navColor);
       saveConfig(
         visibleAppsIndices,
         visibleAppsIndices,
@@ -291,13 +238,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen: propIsOpen, toggle, navColor,
     );
   };
 
-  console.log('Sidebar render, className:', {
-    isOpen,
-    showNeonHue,
-    navColor,
-    neonShadow,
-  });
-
   return (
     <div
       className={clsx(
@@ -308,6 +248,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen: propIsOpen, toggle, navColor,
       style={{ boxShadow: neonShadow, transition: 'width 0.3s ease-in-out, box-shadow 0.2s ease-in-out' }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      role="navigation"
+      aria-label="Sidebar"
     >
       <div className="py-6 px-3 toggle-button-container">
         <button
@@ -316,6 +258,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen: propIsOpen, toggle, navColor,
             'mb-6 text-2xl hover:text-purple-600 self-center',
             isDarkMode ? 'text-white' : 'text-gray-900'
           )}
+          aria-label={isOpen ? 'Collapse sidebar' : 'Expand sidebar'}
         >
           ☰
         </button>
@@ -348,4 +291,4 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen: propIsOpen, toggle, navColor,
   );
 };
 
-export default Sidebar;
+export default React.memo(Sidebar);

@@ -1,32 +1,31 @@
 import React, { useState, useRef, useEffect } from 'react';
 import clsx from 'clsx';
 import { ChevronDownIcon } from '@heroicons/react/24/solid';
-import { Config, Favorites, Favorite } from '../types';
+import { Favorites, Favorite } from '../types';
 import BookmarkPopup from './BookmarkPopup';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useConfig } from './ConfigContext';
+import { getFaviconUrl } from '../utils/favicon';
+import { useErrorHandler } from '../hooks/useErrorHandler';
 
 interface FavoritesBarProps {
-  favorites: Favorites;
   onNavigate: (url: string) => void;
   navColor: string;
   isDarkMode: boolean;
   className?: string;
-  config: Config;
-  setConfig: React.Dispatch<React.SetStateAction<Config>>;
   currentUrl: string;
 }
 
 const FavoritesBar: React.FC<FavoritesBarProps> = ({
-  favorites,
   onNavigate,
   navColor,
   isDarkMode,
   className,
-  config,
-  setConfig,
   currentUrl,
 }) => {
+  const { config, setConfig } = useConfig();
+  const { error, handleError, clearError } = useErrorHandler();
   const [openFolder, setOpenFolder] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<
     | { type: 'bookmark'; folder: string; index: number; x: number; y: number }
@@ -40,8 +39,10 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
   } | null>(null);
   const [renameFolder, setRenameFolder] = useState<{ folder: string; name: string } | null>(null);
   const [faviconCache, setFaviconCache] = useState<Record<string, string>>({});
+  const [searchQuery, setSearchQuery] = useState('');
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -65,42 +66,27 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
   const loadFavicon = async (url: string, folder: string, index: number): Promise<string> => {
     if (faviconCache[url]) return faviconCache[url];
     try {
-      const faviconUrl = favorites[folder][index].favicon || '';
-      if (faviconUrl) {
-        const response = await fetch(faviconUrl);
-        if (response.ok) {
-          const blob = await response.blob();
-          const dataUrl = await new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.readAsDataURL(blob);
-          });
-          const updatedFavorites = {
-            ...favorites,
-            [folder]: favorites[folder].map((item, i) =>
-              i === index ? { ...item, favicon: dataUrl } : item
-            ),
-          };
-          try {
-            const success = await window.electronAPI.saveFavorites(updatedFavorites);
-            if (success) {
-              setConfig((prev) => ({
-                ...prev,
-                favorites: updatedFavorites,
-              }));
-              setFaviconCache((prev) => ({ ...prev, [url]: dataUrl }));
-              return dataUrl;
-            }
-          } catch (err) {
-            console.error('Error saving favicon:', err);
-          }
-          return faviconUrl;
-        }
+      const faviconUrl = await getFaviconUrl(url);
+      const updatedFavorites = {
+        ...config.favorites,
+        [folder]: config.favorites[folder].map((item, i) =>
+          i === index ? { ...item, favicon: faviconUrl } : item
+        ),
+      };
+      const success = await window.electronAPI.saveFavorites(updatedFavorites);
+      if (success) {
+        setConfig((prev) => ({
+          ...prev,
+          favorites: updatedFavorites,
+        }));
+        setFaviconCache((prev) => ({ ...prev, [url]: faviconUrl }));
+        return faviconUrl;
       }
-    } catch (err) {
-      console.warn(`Failed to load favicon for ${url}:`, err);
+      throw new Error('Failed to save favicon');
+    } catch (err: unknown) {
+      handleError(err, `Failed to load favicon for ${url}`);
+      return '/default-favicon.png';
     }
-    return '/default-favicon.png';
   };
 
   const toggleFolder = (folder: string) => {
@@ -122,39 +108,32 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
   };
 
   const handleDeleteBookmark = async () => {
-    if (!contextMenu || contextMenu.type !== 'bookmark') {
-      return;
-    }
+    if (!contextMenu || contextMenu.type !== 'bookmark') return;
 
     const { folder, index } = contextMenu;
-    const updatedFavorites = {
-      ...favorites,
-      [folder]: favorites[folder].filter((_, i) => i !== index),
-    };
-
     try {
+      const updatedFavorites = {
+        ...config.favorites,
+        [folder]: config.favorites[folder].filter((_, i) => i !== index),
+      };
       const success = await window.electronAPI.saveFavorites(updatedFavorites);
-      if (success) {
-        setConfig((prev) => ({
-          ...prev,
-          favorites: updatedFavorites,
-        }));
-        console.log(
-          `Bookmark deleted from "${contextMenu.folder}" at ${new Date().toISOString()}`
-        );
-        setContextMenu(null);
-      } else {
-        console.error('Failed to delete bookmark');
-      }
-    } catch (err) {
-      console.error('Error deleting bookmark:', err);
+      if (!success) throw new Error('Failed to delete bookmark');
+      setConfig((prev) => ({
+        ...prev,
+        favorites: updatedFavorites,
+      }));
+      console.log(`Bookmark deleted from "${folder}" at ${new Date().toISOString()}`);
+      setContextMenu(null);
+      clearError();
+    } catch (err: unknown) {
+      handleError(err, 'Error deleting bookmark');
     }
   };
 
   const handleDeleteFolder = async () => {
     if (!contextMenu || contextMenu.type !== 'folder') return;
 
-    if (favorites[contextMenu.folder].length > 0) {
+    if (config.favorites[contextMenu.folder].length > 0) {
       const confirm = window.confirm(
         `The folder "${contextMenu.folder}" contains bookmarks. Are you sure you want to delete it?`
       );
@@ -164,52 +143,42 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
       }
     }
 
-    const updatedFavorites = { ...favorites };
-    delete updatedFavorites[contextMenu.folder];
-
     try {
+      const updatedFavorites = { ...config.favorites };
+      delete updatedFavorites[contextMenu.folder];
       const success = await window.electronAPI.saveFavorites(updatedFavorites);
-      if (success) {
-        setConfig((prev) => ({
-          ...prev,
-          favorites: updatedFavorites,
-        }));
-        console.log(
-          `Folder "${contextMenu.folder}" deleted at ${new Date().toISOString()}`
-        );
-        setContextMenu(null);
-      } else {
-        console.error('Failed to delete folder');
-      }
-    } catch (err) {
-      console.error('Error deleting folder:', err);
+      if (!success) throw new Error('Failed to delete folder');
+      setConfig((prev) => ({
+        ...prev,
+        favorites: updatedFavorites,
+      }));
+      console.log(`Folder "${contextMenu.folder}" deleted at ${new Date().toISOString()}`);
+      setContextMenu(null);
+      clearError();
+    } catch (err: unknown) {
+      handleError(err, 'Error deleting folder');
     }
   };
 
   const handleRenameFolder = async () => {
     if (!renameFolder || !renameFolder.name) return;
 
-    const updatedFavorites = { ...favorites };
-    const bookmarks = updatedFavorites[renameFolder.folder] || [];
-    delete updatedFavorites[renameFolder.folder];
-    updatedFavorites[renameFolder.name] = bookmarks;
-
     try {
+      const updatedFavorites = { ...config.favorites };
+      const bookmarks = updatedFavorites[renameFolder.folder] || [];
+      delete updatedFavorites[renameFolder.folder];
+      updatedFavorites[renameFolder.name] = bookmarks;
       const success = await window.electronAPI.saveFavorites(updatedFavorites);
-      if (success) {
-        setConfig((prev) => ({
-          ...prev,
-          favorites: updatedFavorites,
-        }));
-        console.log(
-          `Folder renamed from "${renameFolder.folder}" to "${renameFolder.name}" at ${new Date().toISOString()}`
-        );
-        setRenameFolder(null);
-      } else {
-        console.error('Failed to rename folder');
-      }
-    } catch (err) {
-      console.error('Error renaming folder:', err);
+      if (!success) throw new Error('Failed to rename folder');
+      setConfig((prev) => ({
+        ...prev,
+        favorites: updatedFavorites,
+      }));
+      console.log(`Folder renamed from "${renameFolder.folder}" to "${renameFolder.name}" at ${new Date().toISOString()}`);
+      setRenameFolder(null);
+      clearError();
+    } catch (err: unknown) {
+      handleError(err, 'Error renaming folder');
     }
   };
 
@@ -221,37 +190,45 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
     const sourceIndex = result.source.index;
     const destIndex = result.destination.index;
 
-    const updatedFavorites = { ...favorites };
-
-    if (sourceFolder === destFolder) {
-      const items = [...favorites[sourceFolder]];
-      const [reorderedItem] = items.splice(sourceIndex, 1);
-      items.splice(destIndex, 0, reorderedItem);
-      updatedFavorites[sourceFolder] = items;
-    } else {
-      const sourceItems = [...favorites[sourceFolder]];
-      const destItems = [...(favorites[destFolder] || [])];
-      const [movedItem] = sourceItems.splice(sourceIndex, 1);
-      destItems.splice(destIndex, 0, movedItem);
-      updatedFavorites[sourceFolder] = sourceItems;
-      updatedFavorites[destFolder] = destItems;
-    }
-
     try {
-      const success = await window.electronAPI.saveFavorites(updatedFavorites);
-      if (success) {
-        setConfig((prev) => ({
-          ...prev,
-          favorites: updatedFavorites,
-        }));
-        console.log(`Bookmarks reordered at ${new Date().toISOString()}`);
+      const updatedFavorites = { ...config.favorites };
+      if (sourceFolder === destFolder) {
+        const items = [...config.favorites[sourceFolder]];
+        const [reorderedItem] = items.splice(sourceIndex, 1);
+        items.splice(destIndex, 0, reorderedItem);
+        updatedFavorites[sourceFolder] = items;
       } else {
-        console.error('Failed to reorder bookmarks');
+        const sourceItems = [...config.favorites[sourceFolder]];
+        const destItems = [...(config.favorites[destFolder] || [])];
+        const [movedItem] = sourceItems.splice(sourceIndex, 1);
+        destItems.splice(destIndex, 0, movedItem);
+        updatedFavorites[sourceFolder] = sourceItems;
+        updatedFavorites[destFolder] = destItems;
       }
-    } catch (err) {
-      console.error('Error reordering bookmarks:', err);
+      const success = await window.electronAPI.saveFavorites(updatedFavorites);
+      if (!success) throw new Error('Failed to reorder bookmarks');
+      setConfig((prev) => ({
+        ...prev,
+        favorites: updatedFavorites,
+      }));
+      console.log(`Bookmarks reordered at ${new Date().toISOString()}`);
+      clearError();
+    } catch (err: unknown) {
+      handleError(err, 'Error reordering bookmarks');
     }
   };
+
+  const filteredFavorites = Object.entries(config.favorites).reduce((acc, [folder, items]) => {
+    const filteredItems = items.filter(
+      (item) =>
+        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.url.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    if (filteredItems.length > 0) {
+      acc[folder] = filteredItems;
+    }
+    return acc;
+  }, {} as Favorites);
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
@@ -262,26 +239,35 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
           className
         )}
       >
-        {Object.entries(favorites).map(([folder, items]) => (
+        <input
+          ref={searchInputRef}
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className={clsx(
+            'px-3 py-1 text-sm rounded border mr-2',
+            isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+          )}
+          placeholder="Search bookmarks..."
+          aria-label="Search bookmarks"
+        />
+        {Object.entries(searchQuery ? filteredFavorites : config.favorites).map(([folder, items]) => (
           <div key={folder} className="relative">
             {renameFolder?.folder === folder ? (
               <input
                 ref={renameInputRef}
                 type="text"
                 value={renameFolder.name}
-                onChange={(e) =>
-                  setRenameFolder({ folder, name: e.target.value })
-                }
+                onChange={(e) => setRenameFolder({ folder, name: e.target.value })}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleRenameFolder();
                   if (e.key === 'Escape') setRenameFolder(null);
                 }}
                 className={clsx(
                   'px-3 py-1 text-sm rounded border',
-                  isDarkMode
-                    ? 'bg-gray-800 border-gray-600 text-white'
-                    : 'bg-white border-gray-300 text-gray-900'
+                  isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
                 )}
+                aria-label={`Rename folder ${folder}`}
               />
             ) : (
               <button
@@ -403,7 +389,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
                       setEditBookmark({
                         folder: contextMenu.folder,
                         index: contextMenu.index,
-                        bookmark: favorites[contextMenu.folder][contextMenu.index],
+                        bookmark: config.favorites[contextMenu.folder][contextMenu.index],
                       });
                       setContextMenu(null);
                     }
@@ -442,7 +428,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
                 </button>
                 <button
                   onClick={() => {
-                    favorites[contextMenu.folder].forEach((item) => onNavigate(item.url));
+                    config.favorites[contextMenu.folder].forEach((item) => onNavigate(item.url));
                     setContextMenu(null);
                   }}
                   className={clsx(
@@ -471,42 +457,41 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
             onClose={() => setEditBookmark(null)}
             url={editBookmark.bookmark.url}
             webviewRef={null}
-            config={config}
-            setConfig={setConfig}
             isDarkMode={isDarkMode}
             position={{ top: '100px', right: 100 }}
             initialName={editBookmark.bookmark.name}
             initialFolder={editBookmark.folder}
             onSave={async (newBookmark, folder) => {
-              const updatedFavorites = {
-                ...favorites,
-                [folder]: favorites[folder].map((fav, i) =>
-                  i === editBookmark.index ? newBookmark : fav
-                ),
-              };
               try {
+                const updatedFavorites = {
+                  ...config.favorites,
+                  [folder]: config.favorites[folder].map((fav, i) =>
+                    i === editBookmark.index ? newBookmark : fav
+                  ),
+                };
                 const success = await window.electronAPI.saveFavorites(updatedFavorites);
-                if (success) {
-                  setConfig((prev) => ({
-                    ...prev,
-                    favorites: updatedFavorites,
-                  }));
-                  console.log(
-                    `Bookmark "${newBookmark.name}" updated in "${folder}" at ${new Date().toISOString()}`
-                  );
-                  setEditBookmark(null);
-                } else {
-                  console.error('Failed to update bookmark');
-                }
-              } catch (err) {
-                console.error('Error updating bookmark:', err);
+                if (!success) throw new Error('Failed to update bookmark');
+                setConfig((prev) => ({
+                  ...prev,
+                  favorites: updatedFavorites,
+                }));
+                console.log(`Bookmark "${newBookmark.name}" updated in "${folder}" at ${new Date().toISOString()}`);
+                setEditBookmark(null);
+                clearError();
+              } catch (err: unknown) {
+                handleError(err, 'Error updating bookmark');
               }
             }}
           />
+        )}
+        {error && (
+          <p className="text-red-500 text-xs mt-1 ml-2" role="alert">
+            {error}
+          </p>
         )}
       </div>
     </DragDropContext>
   );
 };
 
-export default FavoritesBar;
+export default React.memo(FavoritesBar);

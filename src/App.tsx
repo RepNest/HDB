@@ -5,8 +5,10 @@ import Tabs from './components/Tabs';
 import FavoritesBar from './components/FavoritesBar';
 import WebviewComponent from './components/WebviewComponent';
 import CustomizeSpartanPanel from './components/CustomizeSpartanPanel';
+import HistoryPage from './components/HistoryPage';
+import { ConfigProvider } from './components/ConfigContext';
 import clsx from 'clsx';
-import { Config, Tab, ElectronWebview, ITDTools } from './types';
+import { Tab, ElectronWebview } from './types';
 
 const App: React.FC = () => {
   const [tabs, setTabs] = useState<Tab[]>([{ id: Date.now(), title: 'New Tab', url: 'https://www.google.com' }]);
@@ -14,61 +16,16 @@ const App: React.FC = () => {
   const [closedTabs, setClosedTabs] = useState<Tab[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [customizeOpen, setCustomizeOpen] = useState(false);
-  const [config, setConfig] = useState<Config>({
-    sidebarCollapsed: false,
-    apps: [],
-    favorites: {},
-    itdTools: {
-      appsOrder: [],
-      visibleApps: [],
-      buttonOrder: [],
-      visibleITDButtons: [],
-      isEditMode: false,
-      navBackgroundColor: 'purple',
-      isDarkMode: true,
-      buttonSize: 'medium',
-    },
-    history: [],
-    createdAt: new Date().toISOString(),
-  });
-  const [previewConfig, setPreviewConfig] = useState<ITDTools | null>(null); // Added for live preview
   const [zoomLevel, setZoomLevel] = useState(1);
   const webviews = useRef<{ [key: number]: ElectronWebview | null }>({});
   const baseWidth = 1920;
 
-  useEffect(() => {
-    const loadConfig = async () => {
-      try {
-        const loadedConfig: Config = await window.electronAPI.getConfig();
-        setConfig(loadedConfig);
-        document.documentElement.classList.toggle('dark', loadedConfig.itdTools.isDarkMode ?? true);
-        if (loadedConfig.pinnedTabs && loadedConfig.pinnedTabs.length > 0) {
-          const newTabs = loadedConfig.pinnedTabs.map((tab) => ({
-            ...tab,
-            id: Date.now() + Math.random(),
-          }));
-          setTabs(newTabs);
-          setActiveTabId(newTabs[0].id);
-        }
-      } catch (err) {
-        console.error('Failed to load config:', err);
-      }
-    };
-    loadConfig();
-  }, []);
-
-  // Merge config and previewConfig for rendering
-  const effectiveConfig = useMemo(() => ({
-    ...config,
-    itdTools: { ...config.itdTools, ...(previewConfig || {}) },
-  }), [config, previewConfig]);
-
-  const memoizedFavorites = useMemo(() => effectiveConfig.favorites, [effectiveConfig.favorites]);
   const pinnedTabs = useMemo(() => tabs.filter((tab) => tab.pinned), [tabs]);
 
   const handleNewTab = useCallback((url: string) => {
     const newId = Date.now();
-    setTabs((prev) => [...prev, { id: newId, title: 'New Tab', url, isNew: true }]);
+    const title = url === 'spartan://history' ? 'History' : 'New Tab';
+    setTabs((prev) => [...prev, { id: newId, title, url, isNew: true }]);
     setActiveTabId(newId);
   }, []);
 
@@ -120,7 +77,8 @@ const App: React.FC = () => {
 
   const handleNavigate = useCallback((url: string) => {
     const newId = Date.now();
-    setTabs((prev) => [...prev, { id: newId, title: 'Loading...', url, isNew: false }]);
+    const title = url === 'spartan://history' ? 'History' : 'Loading...';
+    setTabs((prev) => [...prev, { id: newId, title, url, isNew: false }]);
     setActiveTabId(newId);
   }, []);
 
@@ -144,7 +102,7 @@ const App: React.FC = () => {
   const handleReplaceTab = useCallback((id: number, url: string) => {
     setTabs((prev) =>
       prev.map((tab) =>
-        tab.id === id ? { ...tab, url, title: 'Loading...', isNew: false } : tab
+        tab.id === id ? { ...tab, url, title: url === 'spartan://history' ? 'History' : 'Loading...', isNew: false } : tab
       )
     );
   }, []);
@@ -184,76 +142,75 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden" style={{ width: '100%' }}>
-      <Tabs
-        tabs={tabs}
-        activeTabId={activeTabId}
-        onTabClick={handleTabClick}
-        onCloseTab={handleCloseTab}
-        onCloseOtherTabs={handleCloseOtherTabs}
-        onReopenClosedTab={handleReopenClosedTab}
-        onNewTab={() => handleNewTab('https://www.google.com')}
-        onReorderTabs={handleReorderTabs}
-        onPinTab={handlePinTab}
-        onReplaceTab={handleReplaceTab}
-        navColor={effectiveConfig.itdTools.navBackgroundColor || 'purple'}
-        isDarkMode={effectiveConfig.itdTools.isDarkMode ?? true}
-        tabBorderWidth={effectiveConfig.itdTools.tabBorderWidth}
-        highContrast={effectiveConfig.itdTools.highContrast}
-      />
-      <div className="flex flex-col w-full mt-[0.5px]" style={{ flexGrow: 0 }}>
-        <Navbar
-          url={tabs.find((tab) => tab.id === activeTabId)?.url || ''}
-          webviewRef={webviews.current[activeTabId] || null}
-          onNavigate={handleNavigate}
-          onZoomIn={handleZoomIn}
-          onZoomOut={handleZoomOut}
-          onResetZoom={handleResetZoom}
-          zoomLevel={zoomLevel}
-          onNewTab={handleNewTab}
-          onNewWindow={() => window.electronAPI.ipc.send('new-window')}
-          onNewPrivateWindow={() => window.electronAPI.ipc.send('new-private-window')}
-          zoom={Math.min(window.innerWidth / baseWidth, 1)}
-          navColor={effectiveConfig.itdTools.navBackgroundColor || 'purple'}
-          config={effectiveConfig}
-          setConfig={setConfig}
-          setCustomizeOpen={setCustomizeOpen}
-          pinnedTabs={pinnedTabs}
-        />
-        <FavoritesBar
-          className="translate-y-[1px]"
-          favorites={memoizedFavorites}
-          onNavigate={handleNavigate}
-          navColor={effectiveConfig.itdTools.navBackgroundColor || 'purple'}
-          isDarkMode={effectiveConfig.itdTools.isDarkMode ?? true}
-          config={effectiveConfig}
-          setConfig={setConfig}
-          currentUrl={tabs.find((tab) => tab.id === activeTabId)?.url || ''}
-        />
-      </div>
-      <div className={clsx('flex flex-1 overflow-auto', customizeOpen && 'pr-144')} style={{ minHeight: 0 }}>
-        <Sidebar
-          isOpen={sidebarOpen}
-          toggle={() => setSidebarOpen(!sidebarOpen)}
-          navColor={effectiveConfig.itdTools.navBackgroundColor || 'purple'}
-          handleNewTab={handleNewTab}
-          handleQueryViewer={handleQueryViewer}
-        />
-        <WebviewComponent
+    <ConfigProvider>
+      <div className="flex flex-col h-screen overflow-hidden" style={{ width: '100%' }}>
+        <Tabs
           tabs={tabs}
           activeTabId={activeTabId}
-          zoomLevel={zoomLevel}
-          setTabs={setTabs}
+          onTabClick={handleTabClick}
+          onCloseTab={handleCloseTab}
+          onCloseOtherTabs={handleCloseOtherTabs}
+          onReopenClosedTab={handleReopenClosedTab}
+          onNewTab={() => handleNewTab('https://www.google.com')}
+          onReorderTabs={handleReorderTabs}
+          onPinTab={handlePinTab}
+          onReplaceTab={handleReplaceTab}
+          navColor="purple"
+          isDarkMode={true}
+          tabBorderWidth="medium"
+          highContrast={false}
         />
-        <CustomizeSpartanPanel
-          isOpen={customizeOpen}
-          toggle={() => setCustomizeOpen(false)}
-          config={config}
-          setConfig={setConfig}
-          pinnedTabs={pinnedTabs}
-        />
+        <div className="flex flex-col w-full mt-[0.5px]" style={{ flexGrow: 0 }}>
+          <Navbar
+            url={tabs.find((tab) => tab.id === activeTabId)?.url || ''}
+            webviewRef={webviews.current[activeTabId] || null}
+            onNavigate={handleNavigate}
+            onZoomIn={handleZoomIn}
+            onZoomOut={handleZoomOut}
+            onResetZoom={handleResetZoom}
+            zoomLevel={zoomLevel}
+            onNewTab={handleNewTab}
+            onNewWindow={() => window.electronAPI.ipc.send('new-window')}
+            onNewPrivateWindow={() => window.electronAPI.ipc.send('new-private-window')}
+            zoom={Math.min(window.innerWidth / baseWidth, 1)}
+            navColor="purple"
+            setCustomizeOpen={setCustomizeOpen}
+            pinnedTabs={pinnedTabs}
+          />
+          <FavoritesBar
+            className="translate-y-[1px]"
+            onNavigate={handleNavigate}
+            navColor="purple"
+            isDarkMode={true}
+            currentUrl={tabs.find((tab) => tab.id === activeTabId)?.url || ''}
+          />
+        </div>
+        <div className={clsx('flex flex-1 overflow-auto', customizeOpen && 'pr-144')} style={{ minHeight: 0 }}>
+          <Sidebar
+            isOpen={sidebarOpen}
+            toggle={() => setSidebarOpen(!sidebarOpen)}
+            navColor="purple"
+            handleNewTab={handleNewTab}
+            handleQueryViewer={handleQueryViewer}
+          />
+          {tabs.find((tab) => tab.id === activeTabId)?.url === 'spartan://history' ? (
+            <HistoryPage onNavigate={handleNavigate} />
+          ) : (
+            <WebviewComponent
+              tabs={tabs}
+              activeTabId={activeTabId}
+              zoomLevel={zoomLevel}
+              setTabs={setTabs}
+            />
+          )}
+          <CustomizeSpartanPanel
+            isOpen={customizeOpen}
+            toggle={() => setCustomizeOpen(false)}
+            pinnedTabs={pinnedTabs}
+          />
+        </div>
       </div>
-    </div>
+    </ConfigProvider>
   );
 };
 

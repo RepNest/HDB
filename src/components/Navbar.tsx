@@ -73,8 +73,12 @@ const Navbar: React.FC<NavbarProps> = ({
 
   useEffect(() => {
     const loadHistory = async () => {
-      const fetchedHistory = await getHistory();
-      setHistory(fetchedHistory);
+      try {
+        const fetchedHistory = await getHistory();
+        setHistory(fetchedHistory);
+      } catch (err) {
+        console.error('Failed to load history:', err);
+      }
     };
     loadHistory();
   }, []);
@@ -115,7 +119,7 @@ const Navbar: React.FC<NavbarProps> = ({
     if (!trimmed) return null;
     const dangerousProtocols = /^(javascript|data|vbscript):/i;
     if (dangerousProtocols.test(trimmed)) return null;
-    const urlRegex = /^(https?:\/\/|file:\/\/)/i;
+    const urlRegex = /^(https?:\/\/|file:\/\/|spartan:\/\/)/i;
     return urlRegex.test(trimmed) ? trimmed : `https://${trimmed}`;
   };
 
@@ -134,7 +138,7 @@ const Navbar: React.FC<NavbarProps> = ({
       new URL(newUrl);
       setIsLoading(true);
       onNavigate(newUrl);
-      if (webviewRef) {
+      if (webviewRef && !newUrl.startsWith('spartan://')) {
         webviewRef.loadURL(newUrl);
         webviewRef.addEventListener('did-finish-load' as any, () => setIsLoading(false), { once: true });
         webviewRef.addEventListener('did-fail-load', () => setIsLoading(false), { once: true });
@@ -187,16 +191,16 @@ const Navbar: React.FC<NavbarProps> = ({
   return (
     <div
       className={clsx(
-        'flex items-center pt-1 pr-1 pb-3 pl-1 shadow-md relative z-[1000] w-full',
+        'flex items-center py-1 px-1 shadow-md relative z-[1000] w-full',
         `bg-${navColor}-600 dark:bg-${navColor}-300`
       )}
-      style={{ width: '100%' }}
+      style={{ width: '100%', height: '36px' }}
     >
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0.5">
         <button
           onClick={() => webviewRef?.loadURL('https://miamidadecounty.sharepoint.com/sites/ITServiceDesk')}
           className={clsx(
-            'w-10 h-10 flex items-center justify-center rounded-full transition-all',
+            'w-8 h-8 flex items-center justify-center rounded-full transition-all',
             isDarkMode
               ? 'text-white hover:bg-gray-800 fill-white'
               : 'text-gray-900 hover:bg-gray-200 fill-gray-900'
@@ -204,15 +208,15 @@ const Navbar: React.FC<NavbarProps> = ({
           title="Home"
           aria-label="Go to IT Service Desk"
         >
-          <span className="text-2xl">🏠</span>
+          <span className="text-xl">🏠</span>
         </button>
       </div>
-      <div className="flex-1 flex items-center gap-1 ml-2">
-        <div className="flex items-center gap-1">
+      <div className="flex-1 flex items-center gap-0.5 ml-1">
+        <div className="flex items-center gap-0.5">
           <button
             onClick={() => webviewRef?.goBack()}
             className={clsx(
-              'w-10 h-10 flex items-center justify-center rounded-full transition-all',
+              'w-8 h-8 flex items-center justify-center rounded-full transition-all',
               isDarkMode
                 ? 'text-white hover:bg-gray-800 fill-white'
                 : 'text-gray-900 hover:bg-gray-200 fill-gray-900'
@@ -220,12 +224,12 @@ const Navbar: React.FC<NavbarProps> = ({
             title="Back"
             aria-label="Go back"
           >
-            <ChevronLeftIcon className="w-5 h-5" />
+            <ChevronLeftIcon className="w-4 h-4" />
           </button>
           <button
             onClick={() => webviewRef?.goForward()}
             className={clsx(
-              'w-10 h-10 flex items-center justify-center rounded-full transition-all',
+              'w-8 h-8 flex items-center justify-center rounded-full transition-all',
               isDarkMode
                 ? 'text-white hover:bg-gray-800 fill-white'
                 : 'text-gray-900 hover:bg-gray-200 fill-gray-900'
@@ -233,12 +237,12 @@ const Navbar: React.FC<NavbarProps> = ({
             title="Forward"
             aria-label="Go forward"
           >
-            <ChevronRightIcon className="w-5 h-5" />
+            <ChevronRightIcon className="w-4 h-4" />
           </button>
           <button
             onClick={() => webviewRef?.reload()}
             className={clsx(
-              'w-10 h-10 flex items-center justify-center rounded-full transition-all',
+              'w-8 h-8 flex items-center justify-center rounded-full transition-all',
               isDarkMode
                 ? 'text-white hover:bg-gray-800 fill-white'
                 : 'text-gray-900 hover:bg-gray-200 fill-gray-900'
@@ -246,7 +250,7 @@ const Navbar: React.FC<NavbarProps> = ({
             title="Reload"
             aria-label="Reload page"
           >
-            <ArrowPathIcon className="w-5 h-5" />
+            <ArrowPathIcon className="w-4 h-4" />
           </button>
         </div>
         <div className="flex-1 flex justify-center min-w-0 relative">
@@ -258,7 +262,7 @@ const Navbar: React.FC<NavbarProps> = ({
               onKeyDown={handleEnter}
               onFocus={() => setShowSuggestions(true)}
               className={clsx(
-                'w-full px-4 py-2 pr-16 text-base rounded-full border shadow-sm focus:outline-none focus:ring-2 transition-all duration-200',
+                'w-full px-3 py-1 text-sm rounded-full border shadow-sm focus:outline-none focus:ring-2 transition-all duration-200',
                 isDarkMode
                   ? `bg-gray-800 border-gray-700 text-white placeholder-gray-300 focus:ring-${navColor}-300`
                   : `bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-${navColor}-500`,
@@ -275,18 +279,18 @@ const Navbar: React.FC<NavbarProps> = ({
               <button
                 onClick={handleClearInput}
                 className={clsx(
-                  'absolute right-10 top-1/2 transform -translate-y-1/2 text-sm transition-all duration-200',
+                  'absolute right-8 top-1/2 transform -translate-y-1/2 text-xs transition-all duration-200',
                   isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-600 hover:text-gray-500'
                 )}
                 title="Clear address bar"
                 aria-label="Clear address bar"
               >
-                <XMarkIcon className="w-4 h-4" />
+                <XMarkIcon className="w-3 h-3" />
               </button>
             )}
             {isLoading && (
-              <div className="absolute right-16 top-1/2 transform -translate-y-1/2">
-                <svg className="animate-spin h-4 w-4 text-blue-500" viewBox="0 0 24 24">
+              <div className="absolute right-12 top-1/2 transform -translate-y-1/2">
+                <svg className="animate-spin h-3 w-3 text-blue-500" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                 </svg>
@@ -296,7 +300,7 @@ const Navbar: React.FC<NavbarProps> = ({
               ref={starButtonRef}
               onClick={() => setPopupOpen(!popupOpen)}
               className={clsx(
-                'absolute right-3 top-1/2 transform -translate-y-1/2 text-xl transition-all duration-200',
+                'absolute right-2 top-1/2 transform -translate-y-1/2 text-lg transition-all duration-200',
                 isDarkMode ? 'text-yellow-400 hover:text-yellow-300' : 'text-yellow-600 hover:text-yellow-500'
               )}
               title="Save as Favorite"
@@ -324,7 +328,7 @@ const Navbar: React.FC<NavbarProps> = ({
                       key={`${item.url}-${index}`}
                       id={`suggestion-${index}`}
                       className={clsx(
-                        'px-4 py-2 text-sm cursor-pointer transition-all',
+                        'px-3 py-1 text-xs cursor-pointer transition-all',
                         selectedSuggestionIndex === index
                           ? 'bg-gray-600'
                           : isDarkMode
@@ -368,13 +372,13 @@ const Navbar: React.FC<NavbarProps> = ({
             </AnimatePresence>
           </div>
         </div>
-        <div className="flex items-center gap-1 ml-auto mr-6">
-          <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5 ml-auto mr-4">
+          <div className="flex items-center gap-0.5">
             <button
               ref={customizeButtonRef}
               onClick={() => setLocalCustomizeOpen(!customizeOpen)}
               className={clsx(
-                'w-10 h-10 flex items-center justify-center rounded-full transition-all',
+                'w-8 h-8 flex items-center justify-center rounded-full transition-all',
                 isDarkMode
                   ? 'text-white hover:bg-gray-800 fill-white'
                   : 'text-gray-900 hover:bg-gray-200 fill-gray-900'
@@ -382,12 +386,12 @@ const Navbar: React.FC<NavbarProps> = ({
               title="Customize Spartan"
               aria-label="Customize Spartan"
             >
-              <span className="text-2xl">✏️</span>
+              <span className="text-xl">✏️</span>
             </button>
             <button
               onClick={onZoomOut}
               className={clsx(
-                'w-10 h-10 flex items-center justify-center rounded-full transition-all',
+                'w-8 h-8 flex items-center justify-center rounded-full transition-all',
                 isDarkMode
                   ? 'text-white hover:bg-gray-800 fill-white'
                   : 'text-gray-900 hover:bg-gray-200 fill-gray-900'
@@ -395,12 +399,12 @@ const Navbar: React.FC<NavbarProps> = ({
               title="Zoom out"
               aria-label="Zoom out"
             >
-              <MinusIcon className="w-5 h-5" />
+              <MinusIcon className="w-4 h-4" />
             </button>
             <button
               onClick={onResetZoom}
               className={clsx(
-                'px-4 py-2 text-xl rounded-lg shadow-sm border transition-all',
+                'px-3 py-1 text-base rounded-lg shadow-sm border transition-all',
                 isDarkMode
                   ? 'bg-gray-900 text-white border-gray-700 hover:bg-gray-800'
                   : 'bg-gray-100 text-gray-900 border-gray-300 hover:bg-gray-200'
@@ -413,7 +417,7 @@ const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={onZoomIn}
               className={clsx(
-                'w-10 h-10 flex items-center justify-center rounded-full transition-all',
+                'w-8 h-8 flex items-center justify-center rounded-full transition-all',
                 isDarkMode
                   ? 'text-white hover:bg-gray-800 fill-white'
                   : 'text-gray-900 hover:bg-gray-200 fill-gray-900'
@@ -421,14 +425,14 @@ const Navbar: React.FC<NavbarProps> = ({
               title="Zoom in"
               aria-label="Zoom in"
             >
-              <PlusIcon className="w-5 h-5" />
+              <PlusIcon className="w-4 h-4" />
             </button>
           </div>
           <button
             ref={menuButtonRef}
             onClick={() => setMenuOpen(!menuOpen)}
             className={clsx(
-              'w-10 h-10 flex items-center justify-center rounded-full transition-all',
+              'w-8 h-8 flex items-center justify-center rounded-full transition-all',
               isDarkMode
                 ? 'text-white hover:bg-gray-800 fill-white'
                 : 'text-gray-900 hover:bg-gray-200 fill-gray-900'
@@ -437,7 +441,7 @@ const Navbar: React.FC<NavbarProps> = ({
             aria-label="Open more options menu"
             aria-expanded={menuOpen}
           >
-            <Bars3Icon className="w-5 h-5" />
+            <Bars3Icon className="w-4 h-4" />
           </button>
           <AnimatePresence>
             {menuOpen && (
@@ -464,11 +468,12 @@ const Navbar: React.FC<NavbarProps> = ({
                 <div className="flex flex-col">
                   <button
                     onClick={() => {
+                      console.log('Opening new tab');
                       onNewTab('https://www.google.com');
                       setMenuOpen(false);
                     }}
                     className={clsx(
-                      'px-4 py-2 text-lg text-left rounded shadow-sm border transition-all',
+                      'px-4 py-1 text-sm text-left rounded shadow-sm border transition-all',
                       isDarkMode
                         ? 'bg-gray-900 text-white border-gray-700 hover:bg-gray-800'
                         : 'bg-gray-100 text-gray-900 border-gray-300 hover:bg-gray-200'
@@ -480,11 +485,12 @@ const Navbar: React.FC<NavbarProps> = ({
                   </button>
                   <button
                     onClick={() => {
+                      console.log('Opening new window');
                       onNewWindow();
                       setMenuOpen(false);
                     }}
                     className={clsx(
-                      'px-4 py-2 text-lg text-left rounded shadow-sm border transition-all',
+                      'px-4 py-1 text-sm text-left rounded shadow-sm border transition-all',
                       isDarkMode
                         ? 'bg-gray-900 text-white border-gray-700 hover:bg-gray-800'
                         : 'bg-gray-100 text-gray-900 border-gray-300 hover:bg-gray-200'
@@ -496,11 +502,12 @@ const Navbar: React.FC<NavbarProps> = ({
                   </button>
                   <button
                     onClick={() => {
+                      console.log('Opening new private window');
                       onNewPrivateWindow();
                       setMenuOpen(false);
                     }}
                     className={clsx(
-                      'px-4 py-2 text-lg text-left rounded shadow-sm border transition-all',
+                      'px-4 py-1 text-sm text-left rounded shadow-sm border transition-all',
                       isDarkMode
                         ? 'bg-gray-900 text-white border-gray-700 hover:bg-gray-800'
                         : 'bg-gray-100 text-gray-900 border-gray-300 hover:bg-gray-200'
@@ -512,11 +519,12 @@ const Navbar: React.FC<NavbarProps> = ({
                   </button>
                   <button
                     onClick={() => {
+                      console.log('Opening history page');
                       onNewTab('spartan://history');
                       setMenuOpen(false);
                     }}
                     className={clsx(
-                      'px-4 py-2 text-lg text-left rounded shadow-sm border transition-all',
+                      'px-4 py-1 text-sm text-left rounded shadow-sm border transition-all',
                       isDarkMode
                         ? 'bg-gray-900 text-white border-gray-700 hover:bg-gray-800'
                         : 'bg-gray-100 text-gray-900 border-gray-300 hover:bg-gray-200'
@@ -528,11 +536,12 @@ const Navbar: React.FC<NavbarProps> = ({
                   </button>
                   <button
                     onClick={() => {
+                      console.log('Opening settings page');
                       onNewTab('spartan://settings');
                       setMenuOpen(false);
                     }}
                     className={clsx(
-                      'px-4 py-2 text-lg text-left rounded shadow-sm border transition-all',
+                      'px-4 py-1 text-sm text-left rounded shadow-sm border transition-all',
                       isDarkMode
                         ? 'bg-gray-900 text-white border-gray-700 hover:bg-gray-800'
                         : 'bg-gray-100 text-gray-900 border-gray-300 hover:bg-gray-200'

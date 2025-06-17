@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import clsx from 'clsx';
 import { ChevronDownIcon } from '@heroicons/react/24/solid';
-import { Favorites, Favorite } from '../types';
+import { Favorites, Favorite, Config } from '../types';
 import BookmarkPopup from './BookmarkPopup';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -82,7 +82,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
     if (faviconCache[url]) return faviconCache[url];
     try {
       const faviconUrl = await getFaviconUrl(url);
-      const updatedFavorites = {
+      const updatedFavorites: Favorites = {
         ...config.favorites,
         [folder]: config.favorites[folder].map((item, i) =>
           i === index ? { ...item, favicon: faviconUrl } : item
@@ -90,10 +90,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
       };
       const success = await window.electronAPI.saveFavorites(updatedFavorites);
       if (success) {
-        setConfig((prev) => ({
-          ...prev,
-          favorites: updatedFavorites,
-        }));
+        setConfig({ ...config, favorites: updatedFavorites });
         setFaviconCache((prev) => ({ ...prev, [url]: faviconUrl }));
         return faviconUrl;
       }
@@ -127,16 +124,13 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
 
     const { folder, index } = contextMenu;
     try {
-      const updatedFavorites = {
+      const updatedFavorites: Favorites = {
         ...config.favorites,
         [folder]: config.favorites[folder].filter((_, i) => i !== index),
       };
       const success = await window.electronAPI.saveFavorites(updatedFavorites);
       if (!success) throw new Error('Failed to delete bookmark');
-      setConfig((prev) => ({
-        ...prev,
-        favorites: updatedFavorites,
-      }));
+      setConfig({ ...config, favorites: updatedFavorites });
       console.log(`Bookmark deleted from "${folder}" at ${new Date().toISOString()}`);
       setContextMenu(null);
       clearError();
@@ -159,14 +153,11 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
     }
 
     try {
-      const updatedFavorites = { ...config.favorites };
+      const updatedFavorites: Favorites = { ...config.favorites };
       delete updatedFavorites[contextMenu.folder];
       const success = await window.electronAPI.saveFavorites(updatedFavorites);
       if (!success) throw new Error('Failed to delete folder');
-      setConfig((prev) => ({
-        ...prev,
-        favorites: updatedFavorites,
-      }));
+      setConfig({ ...config, favorites: updatedFavorites });
       console.log(`Folder "${contextMenu.folder}" deleted at ${new Date().toISOString()}`);
       setContextMenu(null);
       clearError();
@@ -179,16 +170,13 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
     if (!renameFolder || !renameFolder.name) return;
 
     try {
-      const updatedFavorites = { ...config.favorites };
+      const updatedFavorites: Favorites = { ...config.favorites };
       const bookmarks = updatedFavorites[renameFolder.folder] || [];
       delete updatedFavorites[renameFolder.folder];
       updatedFavorites[renameFolder.name] = bookmarks;
       const success = await window.electronAPI.saveFavorites(updatedFavorites);
       if (!success) throw new Error('Failed to rename folder');
-      setConfig((prev) => ({
-        ...prev,
-        favorites: updatedFavorites,
-      }));
+      setConfig({ ...config, favorites: updatedFavorites });
       console.log(`Folder renamed from "${renameFolder.folder}" to "${renameFolder.name}" at ${new Date().toISOString()}`);
       setRenameFolder(null);
       clearError();
@@ -206,7 +194,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
     const destIndex = result.destination.index;
 
     try {
-      const updatedFavorites = { ...config.favorites };
+      const updatedFavorites: Favorites = { ...config.favorites };
       if (sourceFolder === destFolder) {
         const items = [...config.favorites[sourceFolder]];
         const [reorderedItem] = items.splice(sourceIndex, 1);
@@ -222,10 +210,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
       }
       const success = await window.electronAPI.saveFavorites(updatedFavorites);
       if (!success) throw new Error('Failed to reorder bookmarks');
-      setConfig((prev) => ({
-        ...prev,
-        favorites: updatedFavorites,
-      }));
+      setConfig({ ...config, favorites: updatedFavorites });
       console.log(`Bookmarks reordered at ${new Date().toISOString()}`);
       clearError();
     } catch (err: unknown) {
@@ -249,15 +234,16 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
     <DragDropContext onDragEnd={handleDragEnd}>
       <div
         className={clsx(
-          'flex items-center p-2 border-b z-[800] w-full',
+          'flex items-center py-1 px-2 border-b z-[800] w-full',
           isDarkMode ? `bg-${navColor}-300 border-${navColor}-400` : `bg-${navColor}-600 border-${navColor}-700`,
           className
         )}
+        style={{ height: '36px' }}
       >
         <button
           onClick={() => setShowSearch(!showSearch)}
           className={clsx(
-            'search-toggle w-8 h-8 flex items-center justify-center rounded-full transition-all mr-2',
+            'search-toggle w-6 h-6 flex items-center justify-center rounded-full transition-all mr-1',
             isDarkMode ? 'text-white hover:bg-gray-700' : 'text-gray-900 hover:bg-gray-100'
           )}
           title="Toggle bookmark search"
@@ -274,11 +260,11 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 200, opacity: 1 }}
+              animate={{ width: 150, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
               transition={{ duration: 0.2 }}
               className={clsx(
-                'px-3 py-1 text-sm rounded border mr-2',
+                'px-2 py-0.5 text-xs rounded border mr-1 h-6',
                 isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
               )}
               placeholder="Search bookmarks..."
@@ -299,7 +285,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
                   if (e.key === 'Escape') setRenameFolder(null);
                 }}
                 className={clsx(
-                  'px-3 py-1 text-sm rounded border',
+                  'px-2 py-0.5 text-xs rounded border h-6',
                   isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
                 )}
                 aria-label={`Rename folder ${folder}`}
@@ -309,13 +295,13 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
                 onClick={() => toggleFolder(folder)}
                 onContextMenu={(e) => handleContextMenu(e, folder, undefined, 'folder')}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
+                  if (e.key === 'Enter' || e.key === 'Space') {
                     toggleFolder(folder);
                     e.preventDefault();
                   }
                 }}
                 className={clsx(
-                  'flex items-center px-3 py-1 rounded transition-all',
+                  'flex items-center px-2 py-0.5 rounded transition-all text-xs',
                   isDarkMode ? 'text-white hover:bg-gray-700' : 'text-gray-900 hover:bg-gray-100'
                 )}
                 tabIndex={0}
@@ -326,7 +312,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
               >
                 <span>{folder || 'Favorites'}</span>
                 <ChevronDownIcon
-                  className={clsx('w-4 h-4 ml-1', isDarkMode ? 'fill-white' : 'fill-gray-900')}
+                  className={clsx('w-3 h-3 ml-0.5', isDarkMode ? 'fill-white' : 'fill-gray-900')}
                 />
               </button>
             )}
@@ -361,14 +347,14 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
                                   }}
                                   onContextMenu={(e) => handleContextMenu(e, folder, index, 'bookmark')}
                                   onKeyDown={(e) => {
-                                    if (e.key === 'Enter' || e.key === ' ') {
+                                    if (e.key === 'Enter' || e.key === 'Space') {
                                       onNavigate(item.url);
                                       setOpenFolder(null);
                                       e.preventDefault();
                                     }
                                   }}
                                   className={clsx(
-                                    'block w-full text-left px-4 py-2 text-sm transition-all',
+                                    'block w-full text-left px-3 py-1 text-xs transition-all',
                                     isDarkMode ? 'text-white hover:bg-gray-800' : 'text-gray-900 hover:bg-gray-200',
                                     snapshot.isDragging && 'bg-gray-600',
                                     item.url === currentUrl && 'font-bold bg-gray-500'
@@ -381,7 +367,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
                                   <img
                                     src={faviconCache[item.url] || '/default-favicon.png'}
                                     alt=""
-                                    className="inline w-4 h-4 mr-2"
+                                    className="inline w-3 h-3 mr-1"
                                     onLoad={() => loadFavicon(item.url, folder, index)}
                                   />
                                   <span className="truncate max-w-[200px]">{item.name}</span>
@@ -430,7 +416,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
                     }
                   }}
                   className={clsx(
-                    'block w-full text-left px-4 py-2 text-sm transition-all',
+                    'block w-full text-left px-3 py-1 text-xs transition-all',
                     isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-200'
                   )}
                 >
@@ -439,7 +425,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
                 <button
                   onClick={handleDeleteBookmark}
                   className={clsx(
-                    'block w-full text-left px-4 py-2 text-sm transition-all',
+                    'block w-full text-left px-3 py-1 text-xs transition-all',
                     isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-200'
                   )}
                 >
@@ -455,7 +441,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
                     setContextMenu(null);
                   }}
                   className={clsx(
-                    'block w-full text-left px-4 py-2 text-sm transition-all',
+                    'block w-full text-left px-3 py-1 text-xs transition-all',
                     isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-200'
                   )}
                 >
@@ -467,7 +453,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
                     setContextMenu(null);
                   }}
                   className={clsx(
-                    'block w-full text-left px-4 py-2 text-sm transition-all',
+                    'block w-full text-left px-3 py-1 text-xs transition-all',
                     isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-200'
                   )}
                 >
@@ -476,7 +462,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
                 <button
                   onClick={handleDeleteFolder}
                   className={clsx(
-                    'block w-full text-left px-4 py-2 text-sm transition-all',
+                    'block w-full text-left px-3 py-1 text-xs transition-all',
                     isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-200'
                   )}
                 >
@@ -498,7 +484,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
             initialFolder={editBookmark.folder}
             onSave={async (newBookmark, folder) => {
               try {
-                const updatedFavorites = {
+                const updatedFavorites: Favorites = {
                   ...config.favorites,
                   [folder]: config.favorites[folder].map((fav, i) =>
                     i === editBookmark.index ? newBookmark : fav
@@ -506,10 +492,7 @@ const FavoritesBar: React.FC<FavoritesBarProps> = ({
                 };
                 const success = await window.electronAPI.saveFavorites(updatedFavorites);
                 if (!success) throw new Error('Failed to update bookmark');
-                setConfig((prev) => ({
-                  ...prev,
-                  favorites: updatedFavorites,
-                }));
+                setConfig({ ...config, favorites: updatedFavorites });
                 console.log(`Bookmark "${newBookmark.name}" updated in "${folder}" at ${new Date().toISOString()}`);
                 setEditBookmark(null);
                 clearError();

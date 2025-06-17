@@ -7,9 +7,75 @@ import WebviewComponent from './components/WebviewComponent';
 import CustomizeSpartanPanel from './components/CustomizeSpartanPanel';
 import HistoryPage from './components/HistoryPage';
 import SettingsPage from './components/SettingsPage';
-import { ConfigProvider } from './components/ConfigContext';
+import { ConfigProvider, useConfig } from './components/ConfigContext';
 import clsx from 'clsx';
-import { Tab, ElectronWebview } from './types';
+import { Tab, ElectronWebview, Config } from './types';
+
+const ErrorBoundary: React.FC<{ children: React.ReactNode; fallback: React.ReactNode }> = ({ children, fallback }) => {
+  const [hasError, setHasError] = useState(false);
+  const [errorInfo, setErrorInfo] = useState<string>('');
+
+  useEffect(() => {
+    const errorHandler = (error: ErrorEvent) => {
+      console.error('ErrorBoundary caught:', error.message, error);
+      setErrorInfo(error.message || 'Unknown error');
+      setHasError(true);
+    };
+    window.addEventListener('error', errorHandler);
+    return () => window.removeEventListener('error', errorHandler);
+  }, []);
+
+  return hasError ? (
+    <div className="p-4 text-red-500">
+      {fallback}
+      <p>Error details: {errorInfo}</p>
+    </div>
+  ) : (
+    <>{children}</>
+  );
+};
+
+const defaultConfig: Config = {
+  sidebarCollapsed: false,
+  apps: [],
+  favorites: {},
+  itdTools: {
+    appsOrder: ['0', '1', '2', '3', '4', '5', '6'],
+    visibleApps: ['0', '1', '2', '3', '4', '5', '6'],
+    buttonOrder: [
+      'clearData',
+      'goToQueryViewer',
+      'goToCitrix',
+      'goToNSD',
+      'goToEpar',
+      'goToSmartIT',
+      'goToAzure',
+      'goToEAMS',
+      'goToCitrixManager',
+    ],
+    visibleITDButtons: [
+      'clearData',
+      'goToQueryViewer',
+      'goToCitrix',
+      'goToNSD',
+      'goToEpar',
+      'goToSmartIT',
+      'goToAzure',
+      'goToEAMS',
+      'goToCitrixManager',
+    ],
+    isEditMode: false,
+    navBackgroundColor: 'purple',
+    isDarkMode: true,
+    buttonSize: 'medium',
+    tabBorderWidth: 'medium',
+    highContrast: false,
+    defaultHomepage: 'https://www.google.com',
+  },
+  history: [],
+  createdAt: new Date().toISOString(),
+  pinnedTabs: [],
+};
 
 const App: React.FC = () => {
   const [tabs, setTabs] = useState<Tab[]>([{ id: Date.now(), title: 'New Tab', url: 'https://www.google.com' }]);
@@ -18,17 +84,35 @@ const App: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [config, setConfig] = useState<Config>(defaultConfig);
   const webviews = useRef<{ [key: number]: ElectronWebview | null }>({});
   const baseWidth = 1920;
+
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const fetchedConfig = await window.electronAPI.getConfig();
+        console.log('Loaded config:', fetchedConfig);
+        setConfig(fetchedConfig || defaultConfig);
+      } catch (err) {
+        console.error('Failed to load config:', err);
+        setConfig(defaultConfig);
+      }
+    };
+    loadConfig();
+  }, []);
 
   const pinnedTabs = useMemo(() => tabs.filter((tab) => tab.pinned), [tabs]);
 
   const handleNewTab = useCallback((url: string) => {
+    console.log('handleNewTab called with URL:', url);
     const newId = Date.now();
-    const title = url === 'spartan://history' ? 'History' : url === 'spartan://settings' ? 'Settings' : 'New Tab';
-    setTabs((prev) => [...prev, { id: newId, title, url, isNew: true }]);
+    const defaultUrl = config.itdTools.defaultHomepage || 'https://www.google.com';
+    const effectiveUrl = url === 'https://www.google.com' ? defaultUrl : url;
+    const title = effectiveUrl === 'spartan://history' ? 'History' : effectiveUrl === 'spartan://settings' ? 'Settings' : 'New Tab';
+    setTabs((prev) => [...prev, { id: newId, title, url: effectiveUrl, isNew: true }]);
     setActiveTabId(newId);
-  }, []);
+  }, [config.itdTools.defaultHomepage]);
 
   const handleCloseTab = useCallback((id: number) => {
     setTabs((prev) => {
@@ -77,6 +161,7 @@ const App: React.FC = () => {
   }, []);
 
   const handleNavigate = useCallback((url: string) => {
+    console.log('handleNavigate called with URL:', url);
     const newId = Date.now();
     const title = url === 'spartan://history' ? 'History' : url === 'spartan://settings' ? 'Settings' : 'Loading...';
     setTabs((prev) => [...prev, { id: newId, title, url, isNew: false }]);
@@ -145,7 +230,7 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <ConfigProvider>
+    <ConfigProvider config={config} setConfig={setConfig}>
       <div className="flex flex-col h-screen overflow-hidden" style={{ width: '100%' }}>
         <Tabs
           tabs={tabs}
@@ -196,23 +281,26 @@ const App: React.FC = () => {
             handleNewTab={handleNewTab}
             handleQueryViewer={handleQueryViewer}
           />
-          {(() => {
-            const activeTabUrl = tabs.find((tab) => tab.id === activeTabId)?.url;
-            if (activeTabUrl === 'spartan://history') {
-              return <HistoryPage onNavigate={handleNavigate} />;
-            } else if (activeTabUrl === 'spartan://settings') {
-              return <SettingsPage pinnedTabs={pinnedTabs} />;
-            } else {
-              return (
-                <WebviewComponent
-                  tabs={tabs}
-                  activeTabId={activeTabId}
-                  zoomLevel={zoomLevel}
-                  setTabs={setTabs}
-                />
-              );
-            }
-          })()}
+          <ErrorBoundary fallback={<div className="p-4 text-red-500">Error rendering page</div>}>
+            {(() => {
+              const activeTabUrl = tabs.find((tab) => tab.id === activeTabId)?.url;
+              console.log('Rendering tab with URL:', activeTabUrl);
+              if (activeTabUrl === 'spartan://history') {
+                return <HistoryPage onNavigate={handleNavigate} />;
+              } else if (activeTabUrl === 'spartan://settings') {
+                return <SettingsPage pinnedTabs={pinnedTabs} />;
+              } else {
+                return (
+                  <WebviewComponent
+                    tabs={tabs}
+                    activeTabId={activeTabId}
+                    zoomLevel={zoomLevel}
+                    setTabs={setTabs}
+                  />
+                );
+              }
+            })()}
+          </ErrorBoundary>
           <CustomizeSpartanPanel
             isOpen={customizeOpen}
             toggle={() => setCustomizeOpen(false)}

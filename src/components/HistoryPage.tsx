@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import clsx from 'clsx';
 import { useConfig } from './ConfigContext';
 import { getHistory } from '../utils/history';
+import { useErrorHandler } from '../hooks/useErrorHandler';
+import { HistoryEntry } from '../types';
 
 interface HistoryPageProps {
   onNavigate: (url: string) => void;
@@ -9,17 +11,24 @@ interface HistoryPageProps {
 
 const HistoryPage: React.FC<HistoryPageProps> = ({ onNavigate }) => {
   const { config } = useConfig();
-  const [history, setHistory] = useState(config.history);
-  const [isDarkMode, setIsDarkMode] = useState(config.itdTools.isDarkMode ?? true);
+  const { error, handleError, clearError } = useErrorHandler();
+  const [history, setHistory] = useState<HistoryEntry[]>(config.history || []);
+  const [isDarkMode, setIsDarkMode] = useState(config.itdTools?.isDarkMode ?? true);
 
   useEffect(() => {
-    setIsDarkMode(config.itdTools.isDarkMode ?? true);
-  }, [config.itdTools.isDarkMode]);
+    setIsDarkMode(config.itdTools?.isDarkMode ?? true);
+    setHistory(config.history || []);
+  }, [config.itdTools, config.history]);
 
   useEffect(() => {
     const loadHistory = async () => {
-      const fetchedHistory = await getHistory();
-      setHistory(fetchedHistory);
+      try {
+        const fetchedHistory = await getHistory();
+        setHistory(fetchedHistory || []);
+        clearError();
+      } catch (err: unknown) {
+        handleError(err, 'Failed to load history');
+      }
     };
     loadHistory();
   }, []);
@@ -32,6 +41,11 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onNavigate }) => {
       )}
     >
       <h1 className="text-2xl font-semibold mb-4">Browsing History</h1>
+      {error && (
+        <p className="text-red-500 text-sm mb-2" role="alert">
+          {error}
+        </p>
+      )}
       {history.length === 0 ? (
         <p className="text-sm">No history entries found.</p>
       ) : (
@@ -45,14 +59,24 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onNavigate }) => {
               )}
             >
               <button
-                onClick={() => onNavigate(entry.url)}
+                onClick={() => {
+                  console.log('Navigating to history entry:', entry.url);
+                  onNavigate(entry.url);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === 'Space') {
+                    console.log('Navigating to history entry via keyboard:', entry.url);
+                    onNavigate(entry.url);
+                    e.preventDefault();
+                  }
+                }}
                 className="w-full text-left"
                 aria-label={`Navigate to ${entry.url}`}
               >
                 <div className="flex justify-between items-center">
                   <span className="truncate flex-1">{entry.url}</span>
                   <span className="text-xs text-gray-500 ml-2">
-                    {new Date(entry.timestamp).toLocaleString()}
+                    {entry.timestamp ? new Date(entry.timestamp).toLocaleString() : 'Unknown'}
                   </span>
                 </div>
               </button>
@@ -64,4 +88,4 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onNavigate }) => {
   );
 };
 
-export default HistoryPage;
+export default React.memo(HistoryPage);

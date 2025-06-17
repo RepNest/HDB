@@ -38,8 +38,9 @@ export interface ITDTools {
   buttonBackgroundColor?: string;
   isDarkMode: boolean;
   buttonSize: 'small' | 'medium' | 'large' | 'xlarge';
-  tabBorderWidth?: 'thin' | 'medium' | 'thick'; // New
-  highContrast?: boolean; // New
+  tabBorderWidth?: 'thin' | 'medium' | 'thick';
+  highContrast?: boolean;
+  defaultHomepage?: string;
 }
 
 export interface Config {
@@ -49,7 +50,7 @@ export interface Config {
   itdTools: ITDTools;
   history: HistoryEntry[];
   createdAt: string;
-  pinnedTabs?: Tab[]; // New
+  pinnedTabs?: Tab[];
 }
 
 export interface Tab {

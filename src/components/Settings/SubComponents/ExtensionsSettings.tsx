@@ -11,6 +11,8 @@ type Extension = {
 declare global {
   interface Window {
     electronAPI: {
+      loadEncryptedData(arg0: string): unknown;
+      saveEncryptedData(arg0: string, updated: { id: string; site: string; username: string; password: string; }[]): unknown;
       saveFavorites(updated: { [folder: string]: { name: string; url: string; favicon?: string; }[]; }): unknown;
       launchApp(cmd: string): unknown;
       saveHistory(arg0: never[]): unknown;

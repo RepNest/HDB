@@ -1,0 +1,9 @@
+{
+  "encryption": {
+    "aesKey": "2TmjC5auX99SyeaCLJzh0GDa1rQButIgySgi9C6W7fs=",
+    "iv": "DkUFBrnT2NrmDEcxs/ArXw=="
+  },
+  "passwordStorage": {
+    "useEncryption": true
+  }
+}

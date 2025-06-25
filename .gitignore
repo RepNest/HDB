@@ -9,3 +9,4 @@ dist/assets/index-C4s5AIWG.js
 /node_modules/@babel
 /node_modules/@babel/compat-data
 node_modules/@babel/compat-data/package.json
+/secure-config.json

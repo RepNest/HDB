@@ -13,6 +13,7 @@ import TrackingPreventionPage from './components/Settings/SubComponents/Privacy/
 import PrivacyPage from './components/Settings/SubComponents/Privacy/PrivacyPage';
 import SecurityPage from './components/Settings/SubComponents/Privacy/SecurityPage';
 import ConnectedExperiencesPage from './components/Settings/SubComponents/Privacy/ConnectedExperiencesPage';
+import PasswordsPage from './components/Settings/SubComponents/Privacy/PasswordsPage'
 
 type Tab = {
   id: number;
@@ -68,20 +69,26 @@ export default function App() {
   }, [activeTabId]);
 
   useEffect(() => {
-  window.electronAPI.getConfig?.().then(config => {
-    const history = Array.isArray(config?.history)
-  ? config.history.filter((h: { url: any; timestamp: any; }) =>
-      typeof h === 'object' &&
-      typeof h.url === 'string' &&
-      typeof h.timestamp === 'string'
-    )
-  : [];
+  if (window.electronAPI?.getConfig) {
+    window.electronAPI.getConfig().then(config => {
+      // safe usage
+      const history = Array.isArray(config?.history)
+        ? config.history.filter((h: { url: any; timestamp: any; }) =>
+            typeof h === 'object' &&
+            typeof h.url === 'string' &&
+            typeof h.timestamp === 'string'
+          )
+        : [];
 
-
-    setFavorites(config?.favorites || {});
-    setBrowserHistory(history);
-  });
+      setFavorites(config?.favorites || {});
+      setBrowserHistory(history);
+    });
+  } else {
+    console.error('❌ window.electronAPI.getConfig is not available');
+  }
 }, []);
+console.log('✅ electronAPI available:', typeof window.electronAPI !== 'undefined');
+
 
   const handleNewTab = () => {
     const newId = Date.now();
@@ -631,6 +638,14 @@ if (tab.url === 'about:settings/connectedexperiences') {
   return isActive ? (
     <div key={tab.id} className="w-full h-full text-white">
       <ConnectedExperiencesPage />
+    </div>
+  ) : null;
+}
+
+if (tab.url === 'about:settings/passwords') {
+  return isActive ? (
+    <div key={tab.id} className="w-full h-full text-white">
+      <PasswordsPage />
     </div>
   ) : null;
 }
